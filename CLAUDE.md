@@ -1,3 +1,3 @@
-<!-- nashworks:start -->
-@.nashworks/CLAUDE.factory.md
-<!-- nashworks:end -->
+<!-- scforge:start -->
+@.scforge/CLAUDE.factory.md
+<!-- scforge:end -->

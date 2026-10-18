@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict'
-// Usage: nashworks-round gates [--reset] | locked <red-sha> | flip <verdict.json> [--root DIR]
+// Usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json> [--root DIR]
 // Deterministic round steps; the start command calls these and the LLM roles do the rest.
 const fs = require('fs')
 const path = require('path')
@@ -18,7 +18,7 @@ const TEST_GLOBS = ['test/**', 'tests/**', '**/*.test.*', '**/*.spec.*']
 function main() {
   const [cmd, arg] = argv
   const root = opt('--root') ? path.resolve(opt('--root')) : factoryRoot(process.cwd())
-  const nw = path.join(root, '.nashworks')
+  const nw = path.join(root, '.scforge')
   const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'))
   if (cmd === 'gates') {
     const cfgFile = path.join(nw, 'config.json')
@@ -54,7 +54,7 @@ function main() {
     fs.writeFileSync(file, JSON.stringify(flipPasses(readJson(file), verdict), null, 2))
     return 0
   }
-  throw new Error('usage: nashworks-round gates [--reset] | locked <red-sha> | flip <verdict.json>')
+  throw new Error('usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json>')
 }
 
 try {

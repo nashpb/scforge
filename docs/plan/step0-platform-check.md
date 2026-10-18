@@ -34,7 +34,7 @@ Caveat: the docs agent read only the first ~100k characters of the hooks and env
 | # | Item | Verdict | Facts |
 |---|------|---------|-------|
 | 16 | GitHub traffic API | confirmed | Last 14 days only; needs write access to the repo. The daily cron to persist counts is required. |
-| 17 | Code search and forks | unknown, with a catch | Docs do not mention forks. Default branch only; files over 350 KiB excluded. `.nashworks/` is git-ignored by default, so a search for it finds almost nothing; `.claude/settings.local.json` is ignored too. Passive counting by code search only sees projects with `track_factory: true`. |
+| 17 | Code search and forks | unknown, with a catch | Docs do not mention forks. Default branch only; files over 350 KiB excluded. `.scforge/` is git-ignored by default, so a search for it finds almost nothing; `.claude/settings.local.json` is ignored too. Passive counting by code search only sees projects with `track_factory: true`. |
 | 18 | Local CLI | confirmed | `claude` 2.1.302. `claude plugin` has `validate`, `tag`, `eval`, `details`, `init`. No Jira MCP installed here, so item 14 cannot be tested yet. |
 | 19 | Main-worktree resolution | confirmed (2026-10-18, step 3) | In the main checkout `git rev-parse --git-common-dir` prints `.git` (relative); from a linked worktree it prints the main `.git` path. `lib/paths.js` `factoryRoot` resolves both to the main checkout, covered by `test/run.js` against a real temp repo and worktree. |
 
@@ -42,7 +42,7 @@ Caveat: the docs agent read only the first ~100k characters of the hooks and env
 - `claude plugin eval` runs `evals/**/case.yaml` (or `prompt.md` + `graders/*.md`) against a plugin with a no-plugin baseline. This can be the plugin's eval suite runner (Prior art H).
 - `claude plugin validate`, `claude plugin tag` (creates `{name}--v{version}` tags), and `claude plugin details` (token cost) exist. They can replace some of the planned `plugin-dev` checks and the tagging step.
 
-## Open questions (carried to `.nashworks/NEXT.md`)
+## Open questions (carried to `.scforge/NEXT.md`)
 1. `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` from settings `env`: test.
 2. `SessionEnd` on `/clear`: test.
 3. Per-teammate env: test, only if agent teams are built.

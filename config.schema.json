@@ -1,17 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/nashpb/nashworks/config.schema.json",
-  "title": "Nashworks config (v0.1 keys)",
-  "description": "Schema for .nashworks/config.yaml. v0.1 keys only; a v0.2 key is rejected until its milestone lands.",
+  "$id": "https://github.com/nashpb/scforge/config.schema.json",
+  "title": "Scforge config (v0.1 keys)",
+  "description": "Schema for .scforge/config.yaml. v0.1 keys only; a v0.2 key is rejected until its milestone lands.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "$schema": { "description": "Editor hint; ignored.", "type": "string" },
     "name": {
-      "description": "Custom name. Folder, CLAUDE.md markers and .gitignore entry follow it. Renaming commands is v0.2 (/nashworks:export).",
+      "description": "Custom name. Folder, CLAUDE.md markers and .gitignore entry follow it. Renaming commands is v0.2 (/scforge:export).",
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",
-      "default": "nashworks"
+      "default": "scforge"
     },
     "preset": {
       "description": "v0.1 ships lite only.",
@@ -156,7 +156,7 @@
           "default": true
         },
         "track_factory": {
-          "description": "false = .nashworks/ git-ignored and settings go to .claude/settings.local.json; true = tracked and .claude/settings.json.",
+          "description": "false = .scforge/ git-ignored and settings go to .claude/settings.local.json; true = tracked and .claude/settings.json.",
           "type": "boolean",
           "default": false
         }

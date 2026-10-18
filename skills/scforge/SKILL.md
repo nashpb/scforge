@@ -1,14 +1,14 @@
 ---
-name: nashworks
-description: Charter for the Nashworks factory. Use when running or changing a Nashworks round, reading `.nashworks/` state, or deciding whether work counts as done.
+name: scforge
+description: Charter for the Scforge factory. Use when running or changing a Scforge round, reading `.scforge/` state, or deciding whether work counts as done.
 ---
 
-# Nashworks charter
+# Scforge charter
 
 A round turns one goal into reviewed, committed work. The orchestrator (code, not an LLM) picks the next step. Agents do the steps.
 
 ## Round (v0.1, `lite`)
-1. **planner** reads `.nashworks/NEXT.md` and writes `state/features.json`, every feature `passes: false`, each task with `touches:` paths and a done-check command.
+1. **planner** reads `.scforge/NEXT.md` and writes `state/features.json`, every feature `passes: false`, each task with `touches:` paths and a done-check command.
 2. **red commit**: with no sdet, the sde commits a failing test first. After it, test paths are locked for the rest of the task.
 3. **sde** implements one feature. One feature per session.
 4. **code gates**, cheapest first: lint, typecheck, test (`gates.commands` in `config.json`). A red gate gets a fix round only with the failing output as input. Three fix rounds, then stop and escalate.
@@ -25,7 +25,7 @@ A round turns one goal into reviewed, committed work. The orchestrator (code, no
 - Hands off tests: the sde never edits test paths after the red commit. The sdet writes only under `tests/`. Reviewers and the judge are read-only on source.
 
 ## State
-Read and write only the main worktree's `.nashworks/` (parent of `git rev-parse --git-common-dir`, resolved to an absolute path).
+Read and write only the main worktree's `.scforge/` (parent of `git rev-parse --git-common-dir`, resolved to an absolute path).
 - `config.json`: the active settings. `NEXT.md`: resume, next run, requirements, alternatives.
 - `state/features.json`, `state/decisions.md`, `state/MISTAKES.md`.
 - `MISTAKES.md` entries: timeline, 5 whys, contributing factors, countermeasure and the check that proves it. Fix the prompt or system, never blame an agent.

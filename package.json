@@ -1,11 +1,11 @@
 {
-  "name": "nashworks",
+  "name": "scforge",
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
   "engines": { "node": ">=20" },
   "scripts": {
     "test": "node test/run.js",
-    "check": "node --check lib/schema.js && node --check lib/resolve.js && node --check lib/paths.js && node --check lib/detect.js && node --check lib/generate.js && node --check lib/round.js &&node --check bin/nashworks-gen.js && node --check bin/nashworks-round.js && node --check test/run.js"
+    "check": "node --check lib/schema.js && node --check lib/resolve.js && node --check lib/paths.js && node --check lib/detect.js && node --check lib/generate.js && node --check lib/round.js &&node --check bin/scforge-gen.js && node --check bin/scforge-round.js && node --check test/run.js"
   }
 }
