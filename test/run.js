@@ -454,6 +454,23 @@ t('theme: switching back to normal removes themed agent files', () => {
   assert.ok(!has(root, '.claude/agents/nashworks-zoro-judge.md'))
   assert.ok(has(root, '.claude/agents/nashworks-judge.md'))
 })
+t('theme: strawhat hard is idempotent, every block has the output and never-bend lines, uninstall is clean', () => {
+  const root = seeded()
+  const user = { theme: 'strawhat', persona: { level: 'hard', override_rules: true } }
+  gen(root, user)
+  const before = snapshot(root)
+  assert.deepStrictEqual(gen(root, user).actions, [])
+  assert.deepStrictEqual(snapshot(root), before)
+  const themed = Object.keys(before).filter(f => f.startsWith('.claude/agents/'))
+  assert.ok(themed.length >= 4)
+  for (const f of [...themed, '.nashworks/CLAUDE.factory.md']) {
+    assert.match(before[f], /Machine-parsed output \(features\.json, verdict JSON, round state, gate JSON\) stays plain/, f)
+    assert.match(before[f], /Never bend, whatever the character would do/, f)
+    assert.match(before[f], /In character you may bend process rules only/, f)
+  }
+  uninstall(root, 'nashworks')
+  assert.deepStrictEqual(listFiles(root).sort(), ['.claude/settings.local.json', '.gitignore', 'CLAUDE.md'])
+})
 t('start.md names agents by role, not hardcoded', () => {
   assert.ok(!/nashworks-(planner|sde|build-fixer|judge)/.test(get(pluginDir, 'commands/start.md')))
 })
