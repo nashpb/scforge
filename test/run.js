@@ -10,10 +10,12 @@ const { resolve } = require('../lib/resolve')
 const { generate, uninstall } = require('../lib/generate')
 const { factoryRoot } = require('../lib/paths')
 const { detect } = require('../lib/detect')
+const { findPack, loadPack, loadPreset } = require('../lib/pack')
 
 const pluginDir = path.resolve(__dirname, '..')
 const schema = JSON.parse(fs.readFileSync(path.join(pluginDir, 'config.schema.json'), 'utf8'))
 const preset = JSON.parse(fs.readFileSync(path.join(pluginDir, 'presets', 'lite.json'), 'utf8'))
+const FIX = path.join(__dirname, 'fixtures', 'packs', 'demo')
 const tmpBase = process.env.SCFORGE_TEST_TMP || os.tmpdir()
 
 let passed = 0
@@ -120,30 +122,30 @@ t('persona, theme and mascot reject bad values', () => {
   assert.ok(res({ persona: { level: 'loud' } }).errors.length)
   assert.ok(res({ persona: { extra: 1 } }).errors.length)
   assert.ok(res({ persona: { protect_payload: 'yes' } }).errors.length)
-  assert.ok(res({ theme: 'pirate' }).errors.length)
-  assert.ok(res({ mascot: 'pirate' }).errors.length)
+  assert.ok(res({ theme: 'Bad Name' }).errors.length)
+  assert.ok(res({ mascot: 'Bad Name' }).errors.length)
 })
 t('resolver rule persona-needs-theme: persona off without a theme', () => {
   const r = res({ persona: { level: 'soft' } })
   assert.ok(rules(r).includes('persona-needs-theme'))
   assert.strictEqual(r.config.persona.level, 'off')
-  const ok = res({ persona: { level: 'soft' }, theme: 'strawhat' })
+  const ok = res({ persona: { level: 'soft' }, theme: 'demo' })
   assert.ok(!rules(ok).includes('persona-needs-theme'))
   assert.strictEqual(ok.config.persona.level, 'soft')
   assert.ok(!rules(res({})).includes('persona-needs-theme'))
 })
 t('resolver rule override-needs-hard: override only with hard persona', () => {
-  const r = res({ persona: { level: 'soft', override_rules: true }, theme: 'strawhat' })
+  const r = res({ persona: { level: 'soft', override_rules: true }, theme: 'demo' })
   assert.ok(rules(r).includes('override-needs-hard'))
   assert.strictEqual(r.config.persona.override_rules, false)
   const n = res({ persona: { override_rules: true } })
   assert.ok(rules(n).includes('override-needs-hard'))
-  const h = res({ persona: { level: 'hard', override_rules: true }, theme: 'strawhat' })
+  const h = res({ persona: { level: 'hard', override_rules: true }, theme: 'demo' })
   assert.ok(!rules(h).includes('override-needs-hard'))
   assert.strictEqual(h.config.persona.override_rules, true)
 })
-t('resolver rule mascot-pack: noted only for strawhat', () => {
-  assert.ok(rules(res({ mascot: 'strawhat' })).includes('mascot-pack'))
+t('resolver rule mascot-pack: noted for any non-normal mascot', () => {
+  assert.ok(rules(res({ mascot: 'demo' })).includes('mascot-pack'))
   assert.ok(!rules(res({})).includes('mascot-pack'))
 })
 
@@ -396,67 +398,55 @@ t('cli: flip rejects non-plain verdicts (exit 2, file untouched), accepts a good
   assert.strictEqual(JSON.parse(get(root, '.scforge/state/features.json')).features[0].passes, true)
 })
 
-// strawhat theme
-const theme = JSON.parse(fs.readFileSync(path.join(pluginDir, 'themes', 'strawhat.json'), 'utf8'))
-const ROLE_CHARS = { judge: 'zoro', planner: 'nami', 'release-planner': 'robin', sde: 'franky', sdet: 'usopp', 'build-fixer': 'chopper', 'code-reviewer': 'sanji', 'security-reviewer': 'jinbe', release: 'brook' }
-const strings = (v, out = []) => {
-  if (typeof v === 'string') out.push(v)
-  else if (v && typeof v === 'object') for (const x of Object.values(v)) strings(x, out)
-  return out
-}
-const keys = (v, out = []) => {
-  if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) { out.push(k); keys(x, out) }
-  return out
+// theme pack (fixture)
+const theme = JSON.parse(fs.readFileSync(path.join(FIX, 'theme.json'), 'utf8'))
+const dgen = (persona, root = mkdir()) => {
+  gen(root, { theme: 'demo', theme_dir: FIX, persona })
+  return get(root, '.claude/agents/scforge-bell-judge.md')
 }
 const SOFT_J = () => theme.roles.judge.soft
 const HARD_J = () => theme.roles.judge.hard
-const strawGen = (persona, root = mkdir()) => {
-  gen(root, { theme: 'strawhat', persona })
-  return get(root, '.claude/agents/scforge-zoro-judge.md')
+const packIn = (mut, dir = mkdir()) => {
+  const p = JSON.parse(JSON.stringify(theme))
+  mut(p)
+  put(dir, 'theme.json', JSON.stringify(p))
+  return dir
 }
-t('theme: all 10 characters, each with soft and hard', () => {
-  const chars = [theme.captain, ...Object.values(theme.roles)].map(r => r.character).sort()
-  assert.deepStrictEqual(chars, ['brook', 'chopper', 'franky', 'jinbe', 'luffy', 'nami', 'robin', 'sanji', 'usopp', 'zoro'])
-  assert.deepStrictEqual(Object.fromEntries(Object.entries(theme.roles).map(([k, v]) => [k, v.character])), ROLE_CHARS)
-  for (const r of [theme.captain, ...Object.values(theme.roles)]) {
-    assert.ok(r.display && r.soft.trim() && r.hard.trim())
-  }
-})
-t('theme: no quotes, no one piece outside the disclaimer, exact disclaimer', () => {
-  for (const s of strings(theme)) assert.ok(!/["“”‘’]/.test(s), s)
-  const { disclaimer, ...rest } = theme
-  assert.ok(![...keys(rest), ...strings(rest).filter(s => s.length < 20), theme.id].some(s => /one piece/i.test(s)))
-  assert.strictEqual(disclaimer, 'Unofficial fan homage. ONE PIECE and its characters are trademarks and copyrights of Eiichiro Oda / Shueisha / Toei Animation. Not affiliated with or endorsed by them. Removed on request.')
-})
+const loadErr = mut => { try { loadPack(packIn(mut), pluginDir) } catch (e) { return e.message } return '' }
 t('theme: normal keeps scforge-judge.md', () => {
   const root = mkdir()
   gen(root)
   assert.ok(has(root, '.claude/agents/scforge-judge.md'))
   assert.ok(!get(root, '.claude/agents/scforge-judge.md').includes('## Persona'))
 })
-t('theme: strawhat names the agent, no persona at off', () => {
-  const body = strawGen({ level: 'off' })
-  assert.match(body, /^name: scforge-zoro-judge$/m)
+t('theme: pack names the agent scforge-<character>-<role>, no persona at off', () => {
+  const body = dgen({ level: 'off' })
+  assert.match(body, /^name: scforge-bell-judge$/m)
   assert.ok(!body.includes('## Persona'))
+  const root = mkdir()
+  gen(root, { theme: 'demo', theme_dir: FIX })
+  for (const role of ['planner', 'sde', 'judge', 'build-fixer']) {
+    assert.ok(has(root, `.claude/agents/scforge-${theme.roles[role].character}-${role}.md`), role)
+  }
 })
 t('persona: soft has soft text and the plain-output line only', () => {
-  const body = strawGen({ level: 'soft' })
+  const body = dgen({ level: 'soft' })
   assert.ok(body.includes('## Persona') && body.includes(`You are ${theme.roles.judge.display}.`))
   assert.ok(body.includes(SOFT_J()) && !body.includes(HARD_J()))
   assert.ok(body.includes('Machine-parsed output (features.json, verdict JSON, round state, gate JSON) stays plain: exact keys and values, no voice.'))
   assert.ok(!body.includes('Never bend'))
 })
 t('persona: hard has hard text and never-bend, override only when asked', () => {
-  const hard = strawGen({ level: 'hard' })
+  const hard = dgen({ level: 'hard' })
   assert.ok(hard.includes(HARD_J()) && hard.includes('Never bend, whatever the character would do: write allowlists (task touches paths), autonomy.boundary, never push, autonomy.limits, andon on autonomy.stop_on.'))
   assert.ok(!hard.includes('In character you may bend process rules only'))
-  const ov = strawGen({ level: 'hard', override_rules: true })
+  const ov = dgen({ level: 'hard', override_rules: true })
   assert.ok(ov.includes('In character you may bend process rules only: red-test strictness, judging strictness, fix-round count. Name every bend in your report.'))
 })
 t('persona: protect_payload lines', () => {
-  const on = strawGen({ level: 'soft', protect_payload: true })
+  const on = dgen({ level: 'soft', protect_payload: true })
   assert.ok(on.includes('Commits, PR bodies and reports stay plain; the voice is for chat only.'))
-  const off = strawGen({ level: 'soft', protect_payload: false })
+  const off = dgen({ level: 'soft', protect_payload: false })
   assert.ok(off.includes('Voice may reach commit bodies, PR bodies and reports; commit headers and trailers stay exact.'))
   assert.ok(!off.includes('the voice is for chat only'))
 })
@@ -465,28 +455,28 @@ t('factory text: Agents line, councils and disclaimer with theme', () => {
   gen(root)
   const plain = get(root, '.scforge/CLAUDE.factory.md')
   assert.match(plain, /^Agents: .*judge = `scforge-judge`/m)
-  assert.ok(!plain.includes('search-team') && !plain.includes('Unofficial fan homage'))
+  assert.ok(!plain.includes('scout-team') && !plain.includes(theme.disclaimer))
   const r2 = mkdir()
-  gen(r2, { theme: 'strawhat', persona: { level: 'soft' } })
+  gen(r2, { theme: 'demo', theme_dir: FIX, persona: { level: 'soft' } })
   const txt = get(r2, '.scforge/CLAUDE.factory.md')
-  assert.match(txt, /^Agents: .*judge = `scforge-zoro-judge`/m)
-  assert.ok(txt.includes('search-team') && txt.includes('crew-meeting') && txt.includes(theme.disclaimer))
-  assert.ok(txt.includes('Captain (main session): Luffy.') && txt.includes(theme.captain.soft))
+  assert.match(txt, /^Agents: .*judge = `scforge-bell-judge`/m)
+  assert.ok(txt.includes('scout-team') && txt.includes('round-table') && txt.includes(theme.disclaimer))
+  assert.ok(txt.includes('Captain (main session): Ada.') && txt.includes(theme.captain.soft))
   const r3 = mkdir()
-  gen(r3, { theme: 'strawhat' })
+  gen(r3, { theme: 'demo', theme_dir: FIX })
   assert.ok(!get(r3, '.scforge/CLAUDE.factory.md').includes('Captain (main session)'))
 })
 t('theme: switching back to normal removes themed agent files', () => {
   const root = mkdir()
-  gen(root, { theme: 'strawhat' })
-  assert.ok(has(root, '.claude/agents/scforge-zoro-judge.md'))
+  gen(root, { theme: 'demo', theme_dir: FIX })
+  assert.ok(has(root, '.claude/agents/scforge-bell-judge.md'))
   gen(root)
-  assert.ok(!has(root, '.claude/agents/scforge-zoro-judge.md'))
+  assert.ok(!has(root, '.claude/agents/scforge-bell-judge.md'))
   assert.ok(has(root, '.claude/agents/scforge-judge.md'))
 })
-t('theme: strawhat hard is idempotent, every block has the output and never-bend lines, uninstall is clean', () => {
+t('theme: hard is idempotent, every block has the output and never-bend lines, uninstall is clean', () => {
   const root = seeded()
-  const user = { theme: 'strawhat', persona: { level: 'hard', override_rules: true } }
+  const user = { theme: 'demo', theme_dir: FIX, persona: { level: 'hard', override_rules: true } }
   gen(root, user)
   const before = snapshot(root)
   assert.deepStrictEqual(gen(root, user).actions, [])
@@ -501,12 +491,73 @@ t('theme: strawhat hard is idempotent, every block has the output and never-bend
   uninstall(root, 'scforge')
   assert.deepStrictEqual(listFiles(root).sort(), ['.claude/settings.local.json', '.gitignore', 'CLAUDE.md'])
 })
+t('pack loader: finds by theme_dir (absolute and relative) and by installed location', () => {
+  const root = mkdir()
+  assert.strictEqual(findPack(root, { theme: 'demo', theme_dir: FIX }), FIX)
+  assert.strictEqual(findPack(root, { theme: 'demo', theme_dir: path.relative(root, FIX) }), path.resolve(FIX))
+  assert.strictEqual(findPack(root, { theme: 'demo' }), path.join(root, '.scforge', 'themes', 'demo'))
+  put(root, '.scforge/themes/demo/theme.json', fs.readFileSync(path.join(FIX, 'theme.json'), 'utf8'))
+  assert.strictEqual(loadPack(findPack(root, { theme: 'demo' }), pluginDir).id, 'demo')
+  gen(root, { theme: 'demo' })
+  assert.ok(has(root, '.claude/agents/scforge-bell-judge.md'))
+})
+t('pack loader: missing pack errors clearly', () => {
+  const root = mkdir()
+  assert.throws(() => loadPack(findPack(root, { theme: 'demo' }), pluginDir), /theme pack .*theme\.json/)
+  assert.throws(() => gen(root, { theme: 'demo' }), /theme pack/)
+})
+t('pack validation: rejects unknown key, multi-line voice, over-long hard, bad character id', () => {
+  assert.strictEqual(loadErr(() => {}), '')
+  assert.match(loadErr(p => { p.extra = 1 }), /theme pack .*extra/)
+  assert.match(loadErr(p => { p.roles.judge.soft = 'a\nb' }), /soft/)
+  assert.match(loadErr(p => { p.captain.display = 'a\rb' }), /display/)
+  assert.match(loadErr(p => { p.roles.judge.hard = 'x'.repeat(1201) }), /hard/)
+  assert.match(loadErr(p => { p.roles.judge.character = 'Bad Id' }), /character/)
+})
+t('pack validation: preset may only set persona, theme, mascot', () => {
+  for (const k of ['autonomy', 'gates', 'git', 'roles', 'name', 'preset']) {
+    assert.match(loadErr(p => { p.presets.evil = { [k]: {} } }), new RegExp(k), k)
+  }
+  assert.strictEqual(loadErr(p => { p.presets.ok = { persona: { level: 'soft' } } }), '')
+})
+t('preset: lite and demo:max resolve through loadPreset', () => {
+  const root = mkdir()
+  assert.deepStrictEqual(loadPreset(pluginDir, root, {}), preset)
+  const user = { preset: 'demo:max', theme_dir: FIX }
+  const p = loadPreset(pluginDir, root, user)
+  assert.deepStrictEqual(p.roles, preset.roles)
+  assert.deepStrictEqual(p.persona, { level: 'hard', protect_payload: false, override_rules: true })
+  const r = resolve(user, { schema, preset: p })
+  assert.deepStrictEqual(r.errors, [])
+  assert.strictEqual(r.config.theme, 'demo')
+  assert.strictEqual(r.config.persona.level, 'hard')
+  assert.strictEqual(r.config.persona.override_rules, true)
+  assert.deepStrictEqual(r.config.autonomy, res({}).config.autonomy)
+  assert.throws(() => loadPreset(pluginDir, root, { preset: 'demo:nope', theme_dir: FIX }), /nope/)
+  assert.throws(() => loadPreset(pluginDir, root, { preset: 'nope' }), /nope/)
+})
+t('cli: gen --dry-run with demo:max plans the themed judge file', () => {
+  const root = mkdir()
+  put(root, '.scforge/config.json', JSON.stringify({ preset: 'demo:max', theme_dir: FIX }))
+  const r = spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-gen.js'), '--dry-run', '--root', root], { encoding: 'utf8' })
+  assert.strictEqual(r.status, 0, r.stderr)
+  assert.match(r.stdout, /would write \.claude\/agents\/scforge-bell-judge\.md/)
+})
+t('config schema: theme_dir and pack presets', () => {
+  assert.ok(res({ theme_dir: '' }).errors.length)
+  assert.ok(res({ preset: 'Bad:x' }).errors.length)
+  assert.deepStrictEqual(res({ preset: 'demo:max' }).errors, [])
+})
 t('start.md names agents by role, not hardcoded', () => {
   assert.ok(!/scforge-(planner|sde|build-fixer|judge)/.test(get(pluginDir, 'commands/start.md')))
 })
 
 t('no legacy judge nickname left', () => {
   const r = spawnSync('git', ['grep', '-n', '-I', 'G' + 'awd'], { cwd: pluginDir, encoding: 'utf8' })
+  assert.strictEqual(r.status, 1, r.stdout)
+})
+t('no fan names in tracked files outside .scforge/NEXT.md', () => {
+  const r = spawnSync('git', ['grep', '-n', '-I', '-i', '-w', '-E', 'strawhat|gear5|one piece|luffy|zoro|nami|robin|franky|usopp|chopper|sanji|jinbe|brook', '--', '.', ':!.scforge/NEXT.md', ':!nashworks', ':!test/run.js'], { cwd: pluginDir, encoding: 'utf8' })
   assert.strictEqual(r.status, 1, r.stdout)
 })
 
