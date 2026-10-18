@@ -109,6 +109,44 @@ t('resolver rule reviewer-disabled: warns when light review has no reviewer', ()
   assert.ok(!rules(res({ review: { level: 'none' }, roles: { 'code-reviewer': { enabled: false } } })).includes('reviewer-disabled'))
 })
 
+// persona, theme, mascot
+t('persona, theme and mascot defaults', () => {
+  const c = res({}).config
+  assert.deepStrictEqual(c.persona, { level: 'off', protect_payload: true, override_rules: false })
+  assert.strictEqual(c.theme, 'normal')
+  assert.strictEqual(c.mascot, 'normal')
+})
+t('persona, theme and mascot reject bad values', () => {
+  assert.ok(res({ persona: { level: 'loud' } }).errors.length)
+  assert.ok(res({ persona: { extra: 1 } }).errors.length)
+  assert.ok(res({ persona: { protect_payload: 'yes' } }).errors.length)
+  assert.ok(res({ theme: 'pirate' }).errors.length)
+  assert.ok(res({ mascot: 'pirate' }).errors.length)
+})
+t('resolver rule persona-needs-theme: persona off without a theme', () => {
+  const r = res({ persona: { level: 'soft' } })
+  assert.ok(rules(r).includes('persona-needs-theme'))
+  assert.strictEqual(r.config.persona.level, 'off')
+  const ok = res({ persona: { level: 'soft' }, theme: 'strawhat' })
+  assert.ok(!rules(ok).includes('persona-needs-theme'))
+  assert.strictEqual(ok.config.persona.level, 'soft')
+  assert.ok(!rules(res({})).includes('persona-needs-theme'))
+})
+t('resolver rule override-needs-hard: override only with hard persona', () => {
+  const r = res({ persona: { level: 'soft', override_rules: true }, theme: 'strawhat' })
+  assert.ok(rules(r).includes('override-needs-hard'))
+  assert.strictEqual(r.config.persona.override_rules, false)
+  const n = res({ persona: { override_rules: true } })
+  assert.ok(rules(n).includes('override-needs-hard'))
+  const h = res({ persona: { level: 'hard', override_rules: true }, theme: 'strawhat' })
+  assert.ok(!rules(h).includes('override-needs-hard'))
+  assert.strictEqual(h.config.persona.override_rules, true)
+})
+t('resolver rule mascot-pack: noted only for strawhat', () => {
+  assert.ok(rules(res({ mascot: 'strawhat' })).includes('mascot-pack'))
+  assert.ok(!rules(res({})).includes('mascot-pack'))
+})
+
 // generator
 const SEED_MD = '# Mine\n\nproject rules\n'
 const SEED_IGNORE = 'node_modules\n'
