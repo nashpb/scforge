@@ -36,9 +36,10 @@ All keys are optional; defaults are in `config.schema.json`.
 | Key | Meaning |
 |---|---|
 | `name` | Custom name for folder, markers and ignore entry (default `scforge`). |
-| `preset` | `lite` only in v0.1. |
+| `preset` | `lite` (built in), or `<pack>:<name>` for a preset shipped in a theme pack. |
 | `roles.<role>` | `enabled`, `model`, `effort`, `skills`, `tools`, `compact.window`. Roles: planner, sde, sdet, judge, code-reviewer, build-fixer, release. |
 | `persona`, `theme`, `mascot` | See below. |
+| `theme_dir` | Folder holding the theme pack (`theme.json`). Default: `.<name>/themes/<theme>`. |
 | `plugins` | `preinstall` (default caveman, ponytail), `enabled`, `suggested`. |
 | `review` | `level` none or light; `max_diff_lines` (300). |
 | `gates` | `red_test_first`; `commands.lint`, `commands.typecheck`, `commands.test`. Empty string skips a gate. |
