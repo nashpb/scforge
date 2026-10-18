@@ -366,6 +366,98 @@ t('round: flipPasses only on a pass verdict', () => {
   assert.strictEqual(f.features[0].passes, false)
 })
 
+// strawhat theme
+const theme = JSON.parse(fs.readFileSync(path.join(pluginDir, 'themes', 'strawhat.json'), 'utf8'))
+const ROLE_CHARS = { judge: 'zoro', planner: 'nami', 'release-planner': 'robin', sde: 'franky', sdet: 'usopp', 'build-fixer': 'chopper', 'code-reviewer': 'sanji', 'security-reviewer': 'jinbe', release: 'brook' }
+const strings = (v, out = []) => {
+  if (typeof v === 'string') out.push(v)
+  else if (v && typeof v === 'object') for (const x of Object.values(v)) strings(x, out)
+  return out
+}
+const keys = (v, out = []) => {
+  if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) { out.push(k); keys(x, out) }
+  return out
+}
+const SOFT_J = () => theme.roles.judge.soft
+const HARD_J = () => theme.roles.judge.hard
+const strawGen = (persona, root = mkdir()) => {
+  gen(root, { theme: 'strawhat', persona })
+  return get(root, '.claude/agents/nashworks-zoro-judge.md')
+}
+t('theme: all 10 characters, each with soft and hard', () => {
+  const chars = [theme.captain, ...Object.values(theme.roles)].map(r => r.character).sort()
+  assert.deepStrictEqual(chars, ['brook', 'chopper', 'franky', 'jinbe', 'luffy', 'nami', 'robin', 'sanji', 'usopp', 'zoro'])
+  assert.deepStrictEqual(Object.fromEntries(Object.entries(theme.roles).map(([k, v]) => [k, v.character])), ROLE_CHARS)
+  for (const r of [theme.captain, ...Object.values(theme.roles)]) {
+    assert.ok(r.display && r.soft.trim() && r.hard.trim())
+  }
+})
+t('theme: no quotes, no one piece outside the disclaimer, exact disclaimer', () => {
+  for (const s of strings(theme)) assert.ok(!/["“”‘’]/.test(s), s)
+  const { disclaimer, ...rest } = theme
+  assert.ok(![...keys(rest), ...strings(rest).filter(s => s.length < 20), theme.id].some(s => /one piece/i.test(s)))
+  assert.strictEqual(disclaimer, 'Unofficial fan homage. ONE PIECE and its characters are trademarks and copyrights of Eiichiro Oda / Shueisha / Toei Animation. Not affiliated with or endorsed by them. Removed on request.')
+})
+t('theme: normal keeps nashworks-judge.md', () => {
+  const root = mkdir()
+  gen(root)
+  assert.ok(has(root, '.claude/agents/nashworks-judge.md'))
+  assert.ok(!get(root, '.claude/agents/nashworks-judge.md').includes('## Persona'))
+})
+t('theme: strawhat names the agent, no persona at off', () => {
+  const body = strawGen({ level: 'off' })
+  assert.match(body, /^name: nashworks-zoro-judge$/m)
+  assert.ok(!body.includes('## Persona'))
+})
+t('persona: soft has soft text and the plain-output line only', () => {
+  const body = strawGen({ level: 'soft' })
+  assert.ok(body.includes('## Persona') && body.includes(`You are ${theme.roles.judge.display}.`))
+  assert.ok(body.includes(SOFT_J()) && !body.includes(HARD_J()))
+  assert.ok(body.includes('Machine-parsed output (features.json, verdict JSON, round state, gate JSON) stays plain: exact keys and values, no voice.'))
+  assert.ok(!body.includes('Never bend'))
+})
+t('persona: hard has hard text and never-bend, override only when asked', () => {
+  const hard = strawGen({ level: 'hard' })
+  assert.ok(hard.includes(HARD_J()) && hard.includes('Never bend, whatever the character would do: write allowlists (task touches paths), autonomy.boundary, never push, autonomy.limits, andon on autonomy.stop_on.'))
+  assert.ok(!hard.includes('In character you may bend process rules only'))
+  const ov = strawGen({ level: 'hard', override_rules: true })
+  assert.ok(ov.includes('In character you may bend process rules only: red-test strictness, judging strictness, fix-round count. Name every bend in your report.'))
+})
+t('persona: protect_payload lines', () => {
+  const on = strawGen({ level: 'soft', protect_payload: true })
+  assert.ok(on.includes('Commits, PR bodies and reports stay plain; the voice is for chat only.'))
+  const off = strawGen({ level: 'soft', protect_payload: false })
+  assert.ok(off.includes('Voice may reach commit bodies, PR bodies and reports; commit headers and trailers stay exact.'))
+  assert.ok(!off.includes('the voice is for chat only'))
+})
+t('factory text: Agents line, councils and disclaimer with theme', () => {
+  const root = mkdir()
+  gen(root)
+  const plain = get(root, '.nashworks/CLAUDE.factory.md')
+  assert.match(plain, /^Agents: .*judge = `nashworks-judge`/m)
+  assert.ok(!plain.includes('search-team') && !plain.includes('Unofficial fan homage'))
+  const r2 = mkdir()
+  gen(r2, { theme: 'strawhat', persona: { level: 'soft' } })
+  const txt = get(r2, '.nashworks/CLAUDE.factory.md')
+  assert.match(txt, /^Agents: .*judge = `nashworks-zoro-judge`/m)
+  assert.ok(txt.includes('search-team') && txt.includes('crew-meeting') && txt.includes(theme.disclaimer))
+  assert.ok(txt.includes('Captain (main session): Luffy.') && txt.includes(theme.captain.soft))
+  const r3 = mkdir()
+  gen(r3, { theme: 'strawhat' })
+  assert.ok(!get(r3, '.nashworks/CLAUDE.factory.md').includes('Captain (main session)'))
+})
+t('theme: switching back to normal removes themed agent files', () => {
+  const root = mkdir()
+  gen(root, { theme: 'strawhat' })
+  assert.ok(has(root, '.claude/agents/nashworks-zoro-judge.md'))
+  gen(root)
+  assert.ok(!has(root, '.claude/agents/nashworks-zoro-judge.md'))
+  assert.ok(has(root, '.claude/agents/nashworks-judge.md'))
+})
+t('start.md names agents by role, not hardcoded', () => {
+  assert.ok(!/nashworks-(planner|sde|build-fixer|judge)/.test(get(pluginDir, 'commands/start.md')))
+})
+
 t('no legacy judge nickname left', () => {
   const r = spawnSync('git', ['grep', '-n', '-I', 'G' + 'awd'], { cwd: pluginDir, encoding: 'utf8' })
   assert.strictEqual(r.status, 1, r.stdout)
