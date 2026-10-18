@@ -8,7 +8,7 @@ const { execFileSync } = require('child_process')
 const { validate } = require('../lib/schema')
 const { resolve } = require('../lib/resolve')
 const { factoryRoot } = require('../lib/paths')
-const { runGates, decide, lockedViolations, flipPasses } = require('../lib/round')
+const { runGates, decide, lockedViolations, flipPasses, checkVerdict } = require('../lib/round')
 
 const argv = process.argv.slice(2)
 const opt = f => (argv.includes(f) ? argv[argv.indexOf(f) + 1] : null)
@@ -47,7 +47,11 @@ function main() {
   if (cmd === 'flip') {
     if (!arg) throw new Error('flip needs a verdict json file')
     const file = path.join(nw, 'state', 'features.json')
-    fs.writeFileSync(file, JSON.stringify(flipPasses(readJson(file), readJson(arg)), null, 2))
+    let verdict
+    try { verdict = readJson(arg) } catch (e) { throw new Error(`verdict: ${e.message}`) }
+    const errs = checkVerdict(verdict)
+    if (errs.length) throw new Error(`verdict: ${errs.join('; ')}`)
+    fs.writeFileSync(file, JSON.stringify(flipPasses(readJson(file), verdict), null, 2))
     return 0
   }
   throw new Error('usage: nashworks-round gates [--reset] | locked <red-sha> | flip <verdict.json>')
