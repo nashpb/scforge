@@ -54,7 +54,7 @@ Themes rename agents and supply persona text. Core ships only the `normal` theme
 
 Themes load from separate packs through two keys, `theme` (the pack id) and `theme_dir` (where the pack lives). A pack is a folder with a `theme.json` holding a disclaimer, a captain, a character with `soft` and `hard` text per role, and council names; it may also carry presets and a mascot note. `test/fixtures/packs/demo/theme.json` is a worked example with invented names.
 
-Landing with the pack-loader commit: the `theme`/`theme_dir` loading described above. At the time of this README, `config.schema.json` still lists `theme` and `mascot` as `normal|strawhat` and has no `theme_dir`; treat the pack behavior as pending until that commit.
+The loader is `lib/pack.js`; `config.schema.json` takes any pack name for `theme` and `mascot`, plus `theme_dir`.
 
 `mascot` follows the same rule: core ships no artwork. A mascot is installed separately, never bundled. See `.scforge/reports/mascot-research.md`.
 
@@ -80,6 +80,6 @@ Hard persona and `override_rules` are risky: an in-character agent can talk itse
 
 ## Disclaimer
 
-Unofficial fan homage. ONE PIECE and its characters are trademarks and copyrights of Eiichiro Oda / Shueisha / Toei Animation. Not affiliated with or endorsed by them. Removed on request.
+Core ships no third-party names or artwork. A fan pack must carry its own disclaimer in its `theme.json`; the pack loader surfaces it.
 
 Licensed Apache-2.0 (code). The disclaimer concerns fan packs and their themes, which are not part of core.
