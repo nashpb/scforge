@@ -79,7 +79,7 @@ autonomy:
 ## Lights-out mode
 - `lights_out: true` runs rounds with no human gate up to `boundary`. Anything past the boundary queues for a human.
 - `on_end` acts inside the running session; `suggestions.mode: auto` acts when a new session opens. Both need `autonomy.decisions: auto`.
-- `on_end: new-factory` starts the next factory when Gawd ends one. `release_on_end` cuts a release first, per the approved release plan.
+- `on_end: new-factory` starts the next factory when the judge ends one. `release_on_end` cuts a release first, per the approved release plan.
 - Hard stops: `limits` hit, any `stop_on` event. The factory writes `NEXT.md` and stops.
 - Never bypassable: release plan approval, secret found, `merge-main`/`release` without a release plan.
 
@@ -141,7 +141,7 @@ upstream:
 - Your view: an `Adoption` tab (not the local Usage tab) in a private page (or `/nashworks-ui` when run inside your own repo) that pulls the KV counts plus GitHub stats.
 
 **Feedback loop:**
-- Agents log factory friction (role prompt gaps, missing capability, bad default, bug) to `state/feedback.jsonl` with a 1-5 score. Gawd and reviewers log by default; other roles when `feedback.agents: true`.
+- Agents log factory friction (role prompt gaps, missing capability, bad default, bug) to `state/feedback.jsonl` with a 1-5 score. The judge and reviewers log by default; other roles when `feedback.agents: true`.
 - Local first: re-running `/nashworks-setup` reads the log and fixes what config can fix. Repeat items also go into `MISTAKES.md`.
 - `/nashworks-feedback [text]`: user feedback, same pipeline.
 - Triage before any issue: (1) search factory docs and config: is there an existing option that solves it? If yes, propose that fix locally and stop. (2) `gh issue list --repo <upstream> --search` for duplicates. If one exists, add a +1 comment (with approval), no new issue. (3) Otherwise draft an issue.
@@ -159,7 +159,7 @@ Runs in the generator on every load and prints each fix:
 - `auto_push: true` below `push-branch`: off. Stacks below `open-pr`: local branches only.
 - `suggestions.mode: auto` or `on_end` other than `stop` without `decisions: auto`: falls back to suggest.
 - `gates.red_test_first` with no sdet: sde does the red commit (see Lite).
-- `roles.gawd.model == roles.sde.model`: judge moves to the other tier, with a warning.
+- `roles.judge.model == roles.sde.model`: judge moves to the other tier, with a warning.
 - Incognito: history, upstream ping and feedback filing forced off for the session.
 - Precedence: safety rules, then `config.yaml`, then preset, then defaults.
 
@@ -202,7 +202,7 @@ git:
 
 ## Lite mode
 - `preset: lite` (replaces the earlier `lean` preset; one minimal preset, not two). It is the smallest factory that still works:
-  - Roles: planner (founder), sde, judge (Gawd). The sdet is optional and off by default. With no sdet, the sde writes the failing test as a separate "red" commit first; after that commit the write hook locks test paths for the rest of the task.
+  - Roles: planner (founder), sde, judge. The sdet is optional and off by default. With no sdet, the sde writes the failing test as a separate "red" commit first; after that commit the write hook locks test paths for the rest of the task.
   - Gates: code gates only (lint, typecheck, test). Review `light`, one reviewer.
   - `parallel.features: 1`, no worktrees, no stacked PRs, no agent teams, no councils, no UI server, no release automation (the release plan still needs approval before any release).
   - Haiku/low effort on mechanical steps.
@@ -230,7 +230,7 @@ board:
 ```
 
 ## History
-- One record per factory run in `.nashworks/history/<run-id>.json`: preset, config hash, start/end, rounds, outcome (Gawd verdict), features, PRs, tickets, releases, gate results, andons, approvals, and that run's usage stats.
+- One record per factory run in `.nashworks/history/<run-id>.json`: preset, config hash, start/end, rounds, outcome (judge verdict), features, PRs, tickets, releases, gate results, andons, approvals, and that run's usage stats.
 - Retention: `history.max_runs: 200` (default), oldest removed first. `0` = unlimited.
 - View: `/nashworks-history [run-id]` (CLI list, or one run's timeline) and a History tab in `/nashworks-ui`.
 
@@ -264,7 +264,7 @@ Researched across AI-era plugins and frameworks, AI-era research, and pre-AI man
 - **[later] Native agent teams task list** for parallel features (shared tasks, dependencies, claim locks) instead of a custom bus, once step 0 confirms the API. Per-feature token budget and circuit breaker. Source: code.claude.com/docs/en/agent-teams.
 
 ### B. Planning and spec
-- **[v0.2] Spec as source of truth.** `.nashworks/constitution.md` holds rules that cannot be broken; Gawd enforces it. Acceptance criteria in EARS form ("WHEN x THEN the system SHALL y"), so the sdet maps tests 1:1. An analyze gate checks spec, plan and tasks against each other before any dev work. Sources: GitHub Spec Kit (github.com/github/spec-kit); AWS Kiro specs (kiro.dev/docs/specs); spec-driven development (github.blog).
+- **[v0.2] Spec as source of truth.** `.nashworks/constitution.md` holds rules that cannot be broken; the judge enforces it. Acceptance criteria in EARS form ("WHEN x THEN the system SHALL y"), so the sdet maps tests 1:1. An analyze gate checks spec, plan and tasks against each other before any dev work. Sources: GitHub Spec Kit (github.com/github/spec-kit); AWS Kiro specs (kiro.dev/docs/specs); spec-driven development (github.blog).
 - **[v0.1] Feature list starts failing.** The planner, acting as initializer, writes `features.json` with `passes: false`. Only QA or the judge flips a feature to passing. Dev does one feature per session (`dev.max_features_per_session: 1`). Source: Anthropic "Effective harnesses for long-running agents" (anthropic.com/engineering/effective-harnesses-for-long-running-agents).
 - **[v0.2] Self-contained story files.** Each task file carries the context it needs, so the sde does not re-read the whole PRD. Source: BMAD-METHOD (github.com/bmad-code-org/BMAD-METHOD).
 - **[v0.2] Planner honesty.** Underspecified tasks get `needs_clarification`, not a guess. Planner gives a confidence score; low confidence escalates to a human, even in lights-out. Tasks above `planner.max_task_hours` are split. Sources: Spec Kit `/clarify`; Devin docs (docs.devin.ai); METR task-horizon research (metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks).
@@ -283,8 +283,8 @@ Researched across AI-era plugins and frameworks, AI-era research, and pre-AI man
 
 ### D. Review and judging
 - **[v0.1] Two-stage review.** First "does it match the spec", then code quality and security. Source: obra/superpowers (github.com/obra/superpowers).
-- **[v0.1] Evidence or not done.** Gawd rejects any done claim with no attached command output or test result. The judge grades binary rubric items from `definition_of_done:`, sees the diff and test results, not the dev's reasoning. Sources: superpowers verification-before-completion; Definition of Done.
-- **[v0.1] Judge bias guards.** Resolver rule: `roles.gawd.model` must differ from `roles.sde.model`. **[v0.2]** A/B comparisons run in both orders and must agree. Metric `judge_human_agreement` from approval-gate outcomes. Sources: Zheng et al. (arxiv.org/abs/2306.05685); Panickssery et al. self-preference (arxiv.org/abs/2404.13076).
+- **[v0.1] Evidence or not done.** The judge rejects any done claim with no attached command output or test result. The judge grades binary rubric items from `definition_of_done:`, sees the diff and test results, not the dev's reasoning. Sources: superpowers verification-before-completion; Definition of Done.
+- **[v0.1] Judge bias guards.** Resolver rule: `roles.judge.model` must differ from `roles.sde.model`. **[v0.2]** A/B comparisons run in both orders and must agree. Metric `judge_human_agreement` from approval-gate outcomes. Sources: Zheng et al. (arxiv.org/abs/2306.05685); Panickssery et al. self-preference (arxiv.org/abs/2404.13076).
 - **[v0.1] Small changes.** `review.max_diff_lines: 300`; bigger changes split into stacked PRs automatically. This replaces `git.stack_split_lines`. One reviewer by default; a second only on security-tagged paths. Source: Google eng-practices small CLs (google.github.io/eng-practices/review/developer/small-cls.html); Sadowski et al. 2018.
 - **[v0.1] Fix rounds need new evidence.** A fix round runs only with failing test output or reviewer findings; `rounds.max_fix_iterations: 3`, then escalate. Sources: Reflexion (arxiv.org/abs/2303.11366); "LLMs cannot self-correct reasoning yet" (arxiv.org/abs/2310.01798).
 
@@ -352,7 +352,7 @@ The breadth above was the biggest risk, so v0.1 is the smallest factory that ins
 | planner (founder) | Turn the goal into `features.json` (`passes: false`), tasks with `touches:`; writes the release plan draft | strong, medium effort | read, write `.nashworks/` | `.nashworks/**` only | yes |
 | sde | Implements one feature; writes the red test first when no sdet | mid, medium effort | read, edit, bash | source paths; test paths locked after the red commit | yes |
 | sdet | Writes failing tests before dev | mid | read, edit, bash | `tests/**` only | off by default |
-| judge (Gawd) | Grades `definition_of_done`, flips `passes`, pulls andon; sees diff and test output, not dev reasoning | different model than sde | read, bash (read-only) | `.nashworks/state/**` | yes |
+| judge | Grades `definition_of_done`, flips `passes`, pulls andon; sees diff and test output, not dev reasoning | different model than sde | read, bash (read-only) | `.nashworks/state/**` | yes |
 | code-reviewer (ECC, vendored) | One light review on the RC diff | mid | read | none | yes when `review.level: light` |
 | build-fixer | Fixes lint/type/test failures from gate output | Haiku | read, edit, bash | source paths | on demand |
 | release | Cuts a release per the approved plan; checks plan hash | mid | bash, git | tags, CHANGELOG | no (v0.2) |
@@ -370,7 +370,7 @@ Names follow the role files in `roles/`; `planner` replaces the older "founder" 
 - Publishing: make the rewritten `nashworks` repo public (employer cleared by user). Add `marketplace.json`. Tag `v0.1.0` per its own release plan. Submit to the official Claude Code plugin directory through the developer portal at claude.ai/directory/manage (needs a paid claude.ai plan; run `claude plugin validate --strict` first; there is no `PublishPlugin` tool, step 0 2026-10-18) and community lists (awesome-claude-code style repos). Post a short demo GIF.
 
 ## Dogfood
-The earlier factory was tied to its first project, so it cannot judge a plugin repo. Hand-build steps 2-3 as Nashworks v0. Then Nashworks v0 runs on its own repo and builds steps 4+. Founder plans them as tasks. Gawd rubric: plugin installs, setup generates valid agents, resolver fixes conflicts, gates block bad RCs, release plan cannot be bypassed.
+The earlier factory was tied to its first project, so it cannot judge a plugin repo. Hand-build steps 2-3 as Nashworks v0. Then Nashworks v0 runs on its own repo and builds steps 4+. Founder plans them as tasks. Judge rubric: plugin installs, setup generates valid agents, resolver fixes conflicts, gates block bad RCs, release plan cannot be bypassed.
 
 ## Verification
 - `plugin-dev:plugin-validator` passes.
