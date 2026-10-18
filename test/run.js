@@ -328,4 +328,9 @@ t('round: flipPasses only on a pass verdict', () => {
   assert.strictEqual(f.features[0].passes, false)
 })
 
+t('no legacy judge nickname left', () => {
+  const r = spawnSync('git', ['grep', '-n', '-I', 'G' + 'awd'], { cwd: pluginDir, encoding: 'utf8' })
+  assert.strictEqual(r.status, 1, r.stdout)
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
