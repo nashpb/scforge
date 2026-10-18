@@ -1,0 +1,12 @@
+{
+  "name": "nashworks",
+  "owner": { "name": "nashpb" },
+  "description": "Nashworks: configurable multi-agent software factory for Claude Code.",
+  "plugins": [
+    {
+      "name": "nashworks",
+      "source": "./",
+      "description": "Configurable multi-agent software factory: planner, builder, gates and judge with evidence-based completion."
+    }
+  ]
+}

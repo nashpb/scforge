@@ -1,0 +1,12 @@
+{
+  "preset": "lite",
+  "roles": {
+    "planner": { "enabled": true, "model": "sonnet", "effort": "medium" },
+    "sde": { "enabled": true, "model": "sonnet", "effort": "medium" },
+    "sdet": { "enabled": false, "model": "sonnet", "effort": "medium" },
+    "judge": { "enabled": true, "model": "opus", "effort": "medium" },
+    "code-reviewer": { "enabled": true, "model": "sonnet", "effort": "medium" },
+    "build-fixer": { "enabled": true, "model": "haiku", "effort": "low" },
+    "release": { "enabled": false, "model": "sonnet", "effort": "medium" }
+  }
+}

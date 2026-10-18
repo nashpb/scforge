@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nashpb/nashworks/config.schema.json",
+  "title": "Nashworks config (v0.1 keys)",
+  "description": "Schema for .nashworks/config.yaml. v0.1 keys only; a v0.2 key is rejected until its milestone lands.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "description": "Editor hint; ignored.", "type": "string" },
+    "name": {
+      "description": "Custom name. Folder, CLAUDE.md markers and .gitignore entry follow it. Renaming commands is v0.2 (/nashworks:export).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "default": "nashworks"
+    },
+    "preset": {
+      "description": "v0.1 ships lite only.",
+      "enum": ["lite"],
+      "default": "lite"
+    },
+    "roles": {
+      "description": "Per-role settings, keyed by role name (planner, sde, sdet, judge, code-reviewer, build-fixer, release).",
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/role" }
+    },
+    "plugins": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preinstall": { "$ref": "#/$defs/nameList", "default": ["caveman", "ponytail"] },
+        "enabled": { "$ref": "#/$defs/nameList", "default": [] },
+        "suggested": { "$ref": "#/$defs/nameList", "default": [] }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": { "enum": ["none", "light"], "default": "light" },
+        "max_diff_lines": {
+          "description": "Over this size the judge flags the diff; automatic stacked-PR splitting is v0.2.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 300
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "red_test_first": { "type": "boolean", "default": true },
+        "commands": {
+          "description": "Code gates, run cheapest first. Empty string = gate skipped (setup fills these from stack detection).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "lint": { "type": "string", "default": "" },
+            "typecheck": { "type": "string", "default": "" },
+            "test": { "type": "string", "default": "" }
+          }
+        }
+      }
+    },
+    "rounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_fix_iterations": { "type": "integer", "minimum": 1, "maximum": 10, "default": 3 }
+      }
+    },
+    "errors": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_consecutive": {
+          "description": "Same error this many times in a row triggers a structured request_human.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 3
+        }
+      }
+    },
+    "autonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "decisions": {
+          "description": "Installs, role changes and preset choice: suggest, plan, or auto.",
+          "enum": ["suggest", "plan", "auto"],
+          "default": "suggest"
+        },
+        "boundary": {
+          "description": "Furthest the factory may go. v0.1 allows local-only and feature-branch; higher levels arrive with push and PR support.",
+          "enum": ["local-only", "feature-branch"],
+          "default": "feature-branch"
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_rounds": { "type": "integer", "minimum": 1, "default": 10 },
+            "max_hours": { "type": "number", "exclusiveMinimum": 0, "default": 8 },
+            "max_cost_usd": { "type": "number", "exclusiveMinimum": 0, "default": 50 }
+          }
+        },
+        "stop_on": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["gate-fail-3x", "security-high", "secret-found"] },
+          "default": ["gate-fail-3x", "secret-found"]
+        },
+        "human_gates": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["spec", "plan", "rc", "push"] },
+          "default": ["spec", "plan", "rc", "push"]
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "auto_commit": {
+          "description": "Commit each task after its gates pass (Conventional Commits, round_id trailer). false = keep staged and list in NEXT.md Resume.",
+          "type": "boolean",
+          "default": true
+        },
+        "track_factory": {
+          "description": "false = .nashworks/ git-ignored and settings go to .claude/settings.local.json; true = tracked and .claude/settings.json.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "claude_md": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "target": { "type": "string", "minLength": 1, "default": "CLAUDE.md" }
+      }
+    },
+    "compact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "threshold_pct": { "description": "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE; settings-env path untested (step0 open question 1).", "type": "integer", "minimum": 1, "maximum": 100, "default": 70 },
+        "strategy": { "enum": ["auto", "handoff"], "default": "auto" }
+      }
+    },
+    "history": {
+      "description": "Written in v0.1, collected from v0.2.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "max_runs": { "description": "0 = unlimited.", "type": "integer", "minimum": 0, "default": 200 }
+      }
+    },
+    "usage": {
+      "description": "Written in v0.1, collected from v0.2.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "bucket_sec": { "type": "integer", "minimum": 1, "default": 60 }
+      }
+    }
+  },
+  "$defs": {
+    "nameList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": { "description": "team is v0.2; the resolver switches it to subagent.", "enum": ["subagent", "team"], "default": "subagent" },
+        "model": { "description": "sonnet, opus, haiku, fable, a full model id, or inherit.", "type": "string", "minLength": 1 },
+        "effort": { "enum": ["low", "medium", "high", "xhigh", "max"] },
+        "skills": { "$ref": "#/$defs/nameList" },
+        "tools": { "$ref": "#/$defs/nameList" },
+        "compact": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "window": {
+              "description": "Becomes the agent's autoCompactWindow frontmatter (100000-1000000, Claude Code v2.1.296+).",
+              "type": "integer",
+              "minimum": 100000,
+              "maximum": 1000000
+            }
+          }
+        }
+      }
+    }
+  }
+}
