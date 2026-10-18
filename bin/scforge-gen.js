@@ -8,6 +8,7 @@ const { resolve } = require('../lib/resolve')
 const { generate, uninstall } = require('../lib/generate')
 const { factoryRoot } = require('../lib/paths')
 const { detect } = require('../lib/detect')
+const { loadPreset } = require('../lib/pack')
 
 const argv = process.argv.slice(2)
 const opt = f => (argv.includes(f) ? argv[argv.indexOf(f) + 1] : null)
@@ -33,7 +34,7 @@ function main() {
       invalid.forEach(e => console.error(`config: ${e}`))
       return 1
     }
-    const preset = JSON.parse(fs.readFileSync(path.join(pluginDir, 'presets', `${user.preset || 'lite'}.json`), 'utf8'))
+    const preset = loadPreset(pluginDir, root, user)
     const { config, fixes } = resolve(user, { schema, preset })
     if (config.name !== name) {
       console.error(`config: name "${config.name}" does not match folder .${name}; renaming the folder is not implemented yet`)

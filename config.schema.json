@@ -14,8 +14,9 @@
       "default": "scforge"
     },
     "preset": {
-      "description": "v0.1 ships lite only.",
-      "enum": ["lite"],
+      "description": "lite, or <pack>:<name> for a preset shipped in a theme pack.",
+      "type": "string",
+      "pattern": "^(lite|[a-z][a-z0-9-]*:[a-z][a-z0-9-]*)$",
       "default": "lite"
     },
     "roles": {
@@ -43,12 +44,19 @@
     },
     "theme": {
       "description": "Agent names and persona source; normal keeps standard role names.",
-      "enum": ["normal", "strawhat"],
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
       "default": "normal"
     },
+    "theme_dir": {
+      "description": "Folder holding the theme pack (theme.json). Default: .scforge/themes/<theme>.",
+      "type": "string",
+      "minLength": 1
+    },
     "mascot": {
-      "description": "Core ships no artwork; strawhat needs the separate fan pack.",
-      "enum": ["normal", "strawhat"],
+      "description": "Core ships no artwork; a mascot needs the separate pack.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
       "default": "normal"
     },
     "plugins": {
