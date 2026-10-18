@@ -24,6 +24,33 @@
       "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
       "additionalProperties": { "$ref": "#/$defs/role" }
     },
+    "persona": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": { "enum": ["off", "soft", "hard"], "default": "off" },
+        "protect_payload": {
+          "description": "Machine-parsed fields stay plain regardless; false lets voice reach commit bodies, PR bodies and reports.",
+          "type": "boolean",
+          "default": true
+        },
+        "override_rules": {
+          "description": "Hard persona may bend red-test strictness, judging strictness and fix-round count; never write allowlists, autonomy.boundary, never-push, autonomy.limits, andon on autonomy.stop_on.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "theme": {
+      "description": "Agent names and persona source; normal keeps standard role names.",
+      "enum": ["normal", "strawhat"],
+      "default": "normal"
+    },
+    "mascot": {
+      "description": "Core ships no artwork; strawhat needs the separate fan pack.",
+      "enum": ["normal", "strawhat"],
+      "default": "normal"
+    },
     "plugins": {
       "type": "object",
       "additionalProperties": false,
