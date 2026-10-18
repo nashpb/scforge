@@ -366,6 +366,36 @@ t('round: flipPasses only on a pass verdict', () => {
   assert.strictEqual(f.features[0].passes, false)
 })
 
+t('round: checkVerdict accepts a plain verdict, rejects voiced or malformed ones', () => {
+  const { checkVerdict } = require('../lib/round')
+  assert.deepStrictEqual(checkVerdict({ feature: 'f1', verdict: 'pass', items: [] }), [])
+  assert.deepStrictEqual(checkVerdict({ feature: 'f1', verdict: 'andon' }), [])
+  assert.ok(checkVerdict({ verdict: 'pass' }).length)
+  assert.ok(checkVerdict({ feature: '', verdict: 'pass' }).length)
+  assert.ok(checkVerdict({ feature: 'f1', verdict: 'passed!' }).length)
+  assert.ok(checkVerdict('pass').length)
+  assert.ok(checkVerdict(null).length)
+  assert.ok(checkVerdict([]).length)
+  assert.ok(checkVerdict({ feature: 'f1', verdict: 'pass', items: 'x' }).length)
+})
+
+t('cli: flip rejects non-plain verdicts (exit 2, file untouched), accepts a good one', () => {
+  const root = mkdir()
+  const feats = JSON.stringify({ features: [{ id: 'f1', passes: false }] }, null, 2)
+  put(root, '.nashworks/state/features.json', feats)
+  const flip = body => {
+    put(root, 'v.json', body)
+    return spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'nashworks-round.js'), 'flip', path.join(root, 'v.json'), '--root', root], { encoding: 'utf8' })
+  }
+  for (const bad of ['{"feature":"f1","verdict":"Aye, it passes, captain!"}', 'not json at all', '{"feature":"f1","verdict":"pass","items":"x"}']) {
+    assert.strictEqual(flip(bad).status, 2, bad)
+    assert.strictEqual(get(root, '.nashworks/state/features.json'), feats)
+  }
+  const ok = flip('{"feature":"f1","verdict":"pass"}')
+  assert.strictEqual(ok.status, 0, ok.stderr)
+  assert.strictEqual(JSON.parse(get(root, '.nashworks/state/features.json')).features[0].passes, true)
+})
+
 // strawhat theme
 const theme = JSON.parse(fs.readFileSync(path.join(pluginDir, 'themes', 'strawhat.json'), 'utf8'))
 const ROLE_CHARS = { judge: 'zoro', planner: 'nami', 'release-planner': 'robin', sde: 'franky', sdet: 'usopp', 'build-fixer': 'chopper', 'code-reviewer': 'sanji', 'security-reviewer': 'jinbe', release: 'brook' }
