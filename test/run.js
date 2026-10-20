@@ -10,7 +10,7 @@ const { resolve } = require('../lib/resolve')
 const { generate, uninstall } = require('../lib/generate')
 const { factoryRoot } = require('../lib/paths')
 const { detect } = require('../lib/detect')
-const { decide } = require('../lib/allowlist')
+const { decide: alDecide } = require('../lib/allowlist')
 const { findPack, loadPack, loadPreset } = require('../lib/pack')
 
 const pluginDir = path.resolve(__dirname, '..')
@@ -749,7 +749,7 @@ const AL_F = { features: [
   { id: 'a', passes: false, tasks: [{ touches: ['lib/x.js', 'src/**/*.js', 'docs/*.md'] }] },
   { id: 'b', passes: true, tasks: [{ touches: ['done/**'] }] },
 ] }
-const al = (role, p, features = AL_F) => decide({ role, filePath: p, root: AL_ROOT, features })
+const al = (role, p, features = AL_F) => alDecide({ role, filePath: p, root: AL_ROOT, features })
 t('allowlist: sde/build-fixer allow touches of passes:false features only', () => {
   for (const r of ['sde', 'build-fixer']) {
     assert.strictEqual(al(r, 'lib/x.js').allow, true)
