@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict'
-// Usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json> | secrets [--staged] [<base>] [--root DIR]
+// Usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json> | guard [<red-sha>] | secrets [--staged] [<base>] [--root DIR]
 // Deterministic round steps; the start command calls these and the LLM roles do the rest.
 const fs = require('fs')
 const path = require('path')
@@ -9,7 +9,7 @@ const { validate } = require('../lib/schema')
 const { resolve } = require('../lib/resolve')
 const { factoryRoot } = require('../lib/paths')
 const { scanDiff } = require('../lib/secrets')
-const { runGates, decide, lockedViolations, flipPasses, checkVerdict } = require('../lib/round')
+const { runGates, decide, lockedViolations, guardReasons, flipPasses, checkVerdict } = require('../lib/round')
 
 const argv = process.argv.slice(2)
 const opt = f => (argv.includes(f) ? argv[argv.indexOf(f) + 1] : null)
@@ -55,9 +55,25 @@ function main() {
     fs.writeFileSync(file, JSON.stringify(flipPasses(readJson(file), verdict), null, 2))
     return 0
   }
+  if (cmd === 'guard') {
+    const git = (...a) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 28 })
+    const cfgFile = path.join(nw, 'config.json')
+    const maxLines = (fs.existsSync(cfgFile) && readJson(cfgFile).review || {}).max_diff_lines || 300
+    const reasons = guardReasons({
+      diff: git('diff', '--cached', '-U0'),
+      redChanged: arg && !arg.startsWith('--') ? git('diff', '--cached', '--name-only', arg).split('\n').filter(Boolean) : null,
+      lockedGlobs: TEST_GLOBS,
+      maxLines,
+    })
+    console.log(JSON.stringify({ reasons }))
+    return reasons.length ? 1 : 0
+  }
   if (cmd === 'secrets') {
     const git = (...a) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 28 })
     const base = argv.slice(1).find((a, i, v) => !a.startsWith('--') && v[i - 1] !== '--root')
+    if (!argv.includes('--staged') && !base) {
+      try { git('rev-parse', '--verify', '-q', 'main') } catch { throw new Error('branch main not found; pass <base> explicitly') }
+    }
     const diff = argv.includes('--staged')
       ? git('diff', '--cached', '-U0')
       : git('diff', '-U0', base || git('merge-base', 'main', 'HEAD').trim())
@@ -65,7 +81,7 @@ function main() {
     console.log(JSON.stringify({ findings }))
     return findings.length ? 1 : 0
   }
-  throw new Error('usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json> | secrets [--staged] [<base>]')
+  throw new Error('usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json> | guard [<red-sha>] | secrets [--staged] [<base>]')
 }
 
 try {
