@@ -744,7 +744,7 @@ t('round workflow: old judge/round.workflow.js removed, docs line fixed', () => 
 })
 
 t('setup.md: numbered steps each start their own line', () => {
-  assert.ok(!/[^\s]\s*[0-9]+\. \*\*/.test(get(pluginDir, 'commands/setup.md')))
+  assert.ok(!/[^\s][ \t]*[0-9]+\. \*\*/.test(get(pluginDir, 'commands/setup.md')))
 })
 
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
