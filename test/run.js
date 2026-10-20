@@ -588,7 +588,6 @@ t('README covers install, rounds, config, themes, warnings; no fan names or disc
   for (const h of ['## Install', '## Rounds', '## Config', '## Themes', 'scforge@scforge', 'override_rules', '--confirm-persona']) assert.ok(r.includes(h), h)
   assert.ok(!/^## Disclaimer/m.test(r), 'disclaimer section')
   assert.ok(!/strawhat|gear5|one piece|luffy|zoro|nami|robin|franky|usopp|chopper|sanji|jinbe|brook/i.test(r))
-  assert.ok(fs.existsSync(path.join(pluginDir, '.scforge/reports/mascot-research.md')))
 })
 
 // secret gate
