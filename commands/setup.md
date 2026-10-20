@@ -1,7 +1,7 @@
 ---
 description: Set up Scforge in this repo, or re-tune an existing install. Flags --auto, --uninstall.
 argument-hint: "[--auto] [--uninstall]"
-allowed-tools: Bash, Read, Write, Edit, Agent
+allowed-tools: Bash, Read, Write, Edit, Agent, AskUserQuestion
 ---
 
 Generator: `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-gen.js"`. Call it `GEN` below. Arguments: `$ARGUMENTS`.
@@ -17,11 +17,29 @@ Classify every problem found below as a blocker or a to-do.
 Run `GEN --uninstall`. Print its output. Stop.
 
 ## Setup
-1. **Detect.** Run `GEN --detect`. It prints `{stack, commands:{lint,typecheck,test}}` for this repo.
-2. **Config.** If `.scforge/config.json` exists, read it and keep every value already set. Otherwise start from `{}`. Fill `gates.commands` from step 1 only where empty. Without `--auto`, show the three commands and let the user edit them.
-3. **Test command is required.** If `gates.commands.test` is still empty, ask for one. With `--auto`, stop and say a test command is needed. Never continue without it.
-4. **Questions** (skip with `--auto`; keep defaults): `git.track_factory` (default false), keep board/history/usage on, assign PRs to `@me`.
-5. **Write** `.scforge/config.json` (JSON, only keys that differ from the preset).
+1. **Question tool.** First of all, check that `AskUserQuestion` is callable. If its schema is not loaded, load it with ToolSearch `select:AskUserQuestion`. If it is still unavailable, add a to-do and ask every question below as plain chat text. Nothing needs installing.
+2. **Detect.** Run `GEN --detect`. It prints `{stack, commands:{lint,typecheck,test}}` for this repo. If `.scforge/config.json` exists, read it: its values are the defaults for every question below, and answering "keep" changes nothing.
+3. **Ask, one section at a time.** Each section below is one `AskUserQuestion` call (max 4 questions; split a bigger section across two calls). Put the current value or preset default first, marked "(Recommended)". With `--auto`, skip every section and keep defaults, except the test command in section 1. Ask nothing outside its section.
+4. **Write** `.scforge/config.json` (JSON, only keys that differ from the preset). Show a short summary of what changed, section by section.
+5. **Test command check.** If `gates.commands.test` is still empty, it is a blocker. Never continue without it.
+
+### Section 1: Project and gates
+`gates.commands.lint`, `gates.commands.typecheck`, `gates.commands.test` (offer the detected command, or Other to type one), `gates.red_test_first`. The test command is required: if it is empty after the answers, ask again. With `--auto`, stop and say a test command is needed.
+### Section 2: Roles
+`preset`, which optional roles to enable (`sdet`, `release`), and the `model` and `effort` of `judge` and `sde`.
+### Section 3: Review and fix loop
+`review.level`, `review.max_diff_lines`, `rounds.max_fix_iterations`, `errors.max_consecutive`.
+### Section 4: Autonomy and safety
+`autonomy.decisions`, `autonomy.boundary`, `autonomy.limits` (`max_rounds`, `max_hours`, `max_cost_usd`), `autonomy.stop_on`, `autonomy.human_gates`.
+### Section 5: Git and CLAUDE.md
+`git.track_factory` (default false), `git.auto_commit`, `claude_md.enabled`, `claude_md.target`. PRs are assigned to `@me`; say so, do not ask.
+### Section 6: Context and tracking
+`compact.enabled`, `compact.threshold_pct`, `compact.strategy`, `history.enabled`, `usage.enabled`.
+### Section 7: Persona and theme
+`persona.level`, `persona.protect_payload`, `persona.override_rules`, `theme`, `mascot`. A `hard` level or `override_rules` true triggers the warning in the Generate step.
+### Section 8: Companion plugins
+`plugins.preinstall` (default `caveman`, `ponytail`), `plugins.enabled`, `plugins.suggested`.
+
 6. **Generate.** If config has `persona.level` `hard` or `persona.override_rules` true, first print a big warning: an in-character agent can talk itself past a gate, and override_rules lets it bend red-test strictness, judging strictness and fix rounds (write allowlists, never-push and autonomy limits stay locked). Even with `--auto`, require the user to type exactly `I accept hard persona risk`. On that exact reply add `--confirm-persona`; otherwise do not pass it, and set persona to soft or off. Run `GEN --require-test` (plus `--confirm-persona` if confirmed). Show its output. Exit 1 means fix config and repeat.
 7. **Preinstall caveman and ponytail** at project scope only. Scope is `local` when `git.track_factory` is false, else `project`. Check `claude plugin list` first and skip any already installed. Otherwise run `claude plugin install caveman@caveman --scope <scope>` and `claude plugin install ponytail@ponytail --scope <scope>`. Say they apply to this project only. Skip with a note if a marketplace is missing; do not add marketplaces.
 8. **Release plan.** Spawn the `release-planner` agent. Show `.scforge/release-plan.md`. **Approval is never skipped, not even with `--auto`.** Ask the user to type `approve release plan`. On that exact reply, replace `pending` under `## Approval` with: user (`git config user.name`), UTC timestamp, and the sha256 of the file text above the `## Approval` heading (`node -e` with `crypto`). Anything else leaves it `pending`; tell the user releases stay blocked.
