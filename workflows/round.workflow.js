@@ -61,7 +61,7 @@ while (gate && gate.exit !== 0) {
   gate = await sh(`${RND} gates`, 'regate', 'Check')
 }
 if (!gate) return stop('gates did not run')
-const secrets = await sh(`${RND} secrets ${RED}`, 'secrets', 'Check')
+const secrets = await sh(`${RND} secrets`, 'secrets', 'Check')
 if (!secrets || secrets.exit !== 0) return stop('secret-found', { secrets })
 const guard = await sh(`${RND} guard ${RED}`, 'guard', 'Check')
 if (!guard || guard.exit !== 0) return stop('guard failed', { guard })
