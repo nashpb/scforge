@@ -332,6 +332,20 @@ t('cli: --detect prints JSON, --require-test refuses empty test gate', () => {
   assert.strictEqual(cli('--require-test', '--dry-run').status, 0)
 })
 
+t('cli: hard persona or override_rules refused without --confirm-persona', () => {
+  const root = mkdir()
+  const cli = (...a) => spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-gen.js'), '--root', root, ...a], { encoding: 'utf8' })
+  put(root, '.scforge/config.json', JSON.stringify({ theme: 'demo', theme_dir: FIX, persona: { level: 'hard' } }))
+  const no = cli()
+  assert.strictEqual(no.status, 1)
+  assert.match(no.stderr, /--confirm-persona/)
+  assert.ok(!fs.existsSync(path.join(root, '.claude')))
+  assert.strictEqual(cli('--confirm-persona', '--dry-run').status, 0)
+  put(root, '.scforge/config.json', JSON.stringify({ theme: 'demo', theme_dir: FIX, persona: { level: 'hard', override_rules: true } }))
+  assert.strictEqual(cli('--dry-run').status, 1)
+  assert.strictEqual(cli('--confirm-persona', '--dry-run').status, 0)
+})
+
 const { runGates, decide, lockedViolations, flipPasses } = require('../lib/round')
 
 t('round: runGates stops at the first red gate and keeps its output tail', () => {
