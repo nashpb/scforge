@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 - 2026-10-20
+## [0.1.0] - 2026-10-20
 
 First release.
 
@@ -30,3 +30,5 @@ First release.
 - `claude plugin validate .` warnings.
 - Presets and a first external theme pack (separate repo).
 - Config override for the rules that cannot be broken.
+
+[0.1.0]: https://github.com/nashpb/scforge/releases/tag/v0.1.0
