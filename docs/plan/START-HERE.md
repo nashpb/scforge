@@ -11,6 +11,6 @@
 ## Layout
 - `.claude-plugin/plugin.json`: manifest stub (version 0.0.0).
 - `agents/ commands/ skills/scforge/ hooks/ bin/ presets/ evals/ ui/ worker/ .github/ISSUE_TEMPLATE/`: empty plugin folders from the plan.
-- `judge/round.workflow.js`: earlier round workflow, to port in build step 5.
+- `workflows/round.workflow.js`: round workflow driving the `scforge-round` steps.
 - `roles/`: optional decision and product council roles.
 - `.scforge/`: the factory's own state dir for dogfooding. Git-ignored by design; the skeleton is force-added so it travels.
