@@ -1,7 +1,7 @@
 # Scforge: generic, adaptive factory plugin
 
 ## Context
-Scforge grows out of a working multi-agent factory first built for one internal project: markdown roles, a charter, shared state files (board, handoff, mistakes) and a Workflow script for rounds. That version had no plugin manifest, config, reviewers, UI or presets, and was tied to its project. This repo starts clean; only the generic round workflow (`judge/round.workflow.js`) and the council roles (`roles/`) carry over.
+Scforge grows out of a working multi-agent factory first built for one internal project: markdown roles, a charter, shared state files (board, handoff, mistakes) and a Workflow script for rounds. That version had no plugin manifest, config, reviewers, UI or presets, and was tied to its project. This repo starts clean; only the generic round workflow (ported to `workflows/round.workflow.js`) and the council roles (`roles/`) carry over.
 Goal: a generic, adaptive Claude Code plugin named **Scforge**, built by the factory itself, published on GitHub for others.
 
 ## Verdict on original ideas
@@ -335,7 +335,7 @@ Researched across AI-era plugins and frameworks, AI-era research, and pre-AI man
 2. **Plugin skeleton (hand-built).** `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `commands/`, `agents/`, `skills/scforge/SKILL.md` (charter as skill). Write generic roles from this plan (roles, round, rubric) and ECC upstream. Vendor the ECC subset with license notice and pinned commit: `code-reviewer`, `security-reviewer`, `refactor-cleaner`, `tdd-workflow`, plus `build-error-resolver` and `verification-loop` merged into build-fixer and `verify-gate`.
 3. **Config, generator and resolver (hand-built).** Writes prefixed agents, settings, `CLAUDE.md` block, `.gitignore`, `generated.json`. Node (no deps beyond a YAML parser, or JSON config if a parser would be the only dep). One assert-based self-check covers each resolver rule.
 4. **Release planner agent and `/scforge-setup`** (stack detection, project-scope preinstall, `--auto`, `--uninstall`). Built by Scforge v0 on itself.
-5. **Round workflow.** Port `judge/round.workflow.js` as the deterministic state machine: N parallel features partitioned by path, worktree per feature, stacks, red-test-first, write-allowlist hook, code gates then two-stage review, andon, max 3 fix rounds, boundary, typed handoffs, approvals and metrics logging. All **[v0.1]** items from Prior art land here or in steps 2-4. The eval suite is set up alongside, so every later step is measured.
+5. **Round workflow.** Port the old round workflow to `workflows/round.workflow.js` (done for one feature per run; parallel features stay v0.2) as the deterministic state machine: N parallel features partitioned by path, worktree per feature, stacks, red-test-first, write-allowlist hook, code gates then two-stage review, andon, max 3 fix rounds, boundary, typed handoffs, approvals and metrics logging. All **[v0.1]** items from Prior art land here or in steps 2-4. The eval suite is set up alongside, so every later step is measured.
 5b. **Lite preset, CLI board, history, usage collection, `NEXT.md` + session-start suggestions, auto commit/push toggles, lights-out with the network guard** (`/scforge-board`, `/scforge-history`, `/scforge-stats`).
 
 ### v0.1 slice (cut 2026-10-18)
