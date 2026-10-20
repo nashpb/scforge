@@ -553,7 +553,7 @@ t('preset: lite and demo:max resolve through loadPreset', () => {
 t('cli: gen --dry-run with demo:max plans the themed judge file', () => {
   const root = mkdir()
   put(root, '.scforge/config.json', JSON.stringify({ preset: 'demo:max', theme_dir: FIX }))
-  const r = spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-gen.js'), '--dry-run', '--root', root], { encoding: 'utf8' })
+  const r = spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-gen.js'), '--dry-run', '--confirm-persona', '--root', root], { encoding: 'utf8' })
   assert.strictEqual(r.status, 0, r.stderr)
   assert.match(r.stdout, /would write \.claude\/agents\/scforge-bell-judge\.md/)
 })
