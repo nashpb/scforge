@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "description": "Configurable multi-agent software factory for Claude Code.",
   "author": { "name": "nashpb" },
+  "homepage": "https://github.com/nashpb/scforge",
   "repository": "https://github.com/nashpb/scforge",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "documentationUrl": "https://github.com/nashpb/scforge#readme",
+  "supportUrl": "https://github.com/nashpb/scforge/issues",
+  "privacyPolicyUrl": "https://github.com/nashpb/scforge/blob/main/PRIVACY.md"
 }

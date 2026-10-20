@@ -4,7 +4,7 @@ argument-hint: "[goal text]"
 allowed-tools: Bash, Read, Write, Edit, Agent
 ---
 
-Round CLI: `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-round.js"`. Call it `RND`. Goal override: `$ARGUMENTS`.
+Round CLI: `node "${CLAUDE_PLUGIN_ROOT}/scripts/scforge-round.js"`. Call it `RND`. Goal override: `$ARGUMENTS`.
 Agents are the generated `scforge-*` ones in `.claude/agents/`. Follow the `scforge` skill. If `.scforge/generated.json` is missing, tell the user to run `/scforge:setup` and stop.
 
 1. **Plan.** If `$ARGUMENTS` is set, write it under `Start next run` in `.scforge/NEXT.md`. Spawn the planner agent (agents are listed by role under `Agents:` in `.scforge/CLAUDE.factory.md`, default `scforge-<role>`). Read `.scforge/state/features.json`. Pick the first feature with `passes: false`. If it has `needs_clarification`, ask the user and stop.

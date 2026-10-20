@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `LICENSE` (Apache-2.0), `PRIVACY.md`, and `homepage`, `documentationUrl`, `supportUrl`, `privacyPolicyUrl` in `plugin.json`.
+- README section on what the plugin runs and writes.
+
+### Changed
+- `bin/` moved to `scripts/` so the plugin has no top-level `bin/` (claude.ai and Cowork do not install one).
+
 ## [0.1.0] - 2026-10-20
 
 First release.

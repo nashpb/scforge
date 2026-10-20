@@ -296,7 +296,7 @@ t('factoryRoot: the main checkout and a linked worktree resolve to the same root
 // CLI
 t('cli: dry run succeeds, bad config exits 1, name mismatch exits 1', () => {
   const root = mkdir()
-  const cli = (...a) => spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-gen.js'), '--root', root, ...a], { encoding: 'utf8' })
+  const cli = (...a) => spawnSync(process.execPath, [path.join(pluginDir, 'scripts', 'scforge-gen.js'), '--root', root, ...a], { encoding: 'utf8' })
   const dry = cli('--dry-run')
   assert.strictEqual(dry.status, 0, dry.stderr)
   assert.match(dry.stdout, /would write \.claude\/agents\/scforge-sde\.md/)
@@ -323,7 +323,7 @@ t('detect: node scripts, python default, unknown', () => {
 
 t('cli: --detect prints JSON, --require-test refuses empty test gate', () => {
   const root = mkdir()
-  const cli = (...a) => spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-gen.js'), '--root', root, ...a], { encoding: 'utf8' })
+  const cli = (...a) => spawnSync(process.execPath, [path.join(pluginDir, 'scripts', 'scforge-gen.js'), '--root', root, ...a], { encoding: 'utf8' })
   assert.strictEqual(JSON.parse(cli('--detect').stdout).stack, 'unknown')
   const no = cli('--require-test', '--dry-run')
   assert.strictEqual(no.status, 1)
@@ -334,7 +334,7 @@ t('cli: --detect prints JSON, --require-test refuses empty test gate', () => {
 
 t('cli: hard persona or override_rules refused without --confirm-persona', () => {
   const root = mkdir()
-  const cli = (...a) => spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-gen.js'), '--root', root, ...a], { encoding: 'utf8' })
+  const cli = (...a) => spawnSync(process.execPath, [path.join(pluginDir, 'scripts', 'scforge-gen.js'), '--root', root, ...a], { encoding: 'utf8' })
   put(root, '.scforge/config.json', JSON.stringify({ theme: 'demo', theme_dir: FIX, persona: { level: 'hard' } }))
   const no = cli()
   assert.strictEqual(no.status, 1)
@@ -401,7 +401,7 @@ t('cli: flip rejects non-plain verdicts (exit 2, file untouched), accepts a good
   put(root, '.scforge/state/features.json', feats)
   const flip = body => {
     put(root, 'v.json', body)
-    return spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-round.js'), 'flip', path.join(root, 'v.json'), '--root', root], { encoding: 'utf8' })
+    return spawnSync(process.execPath, [path.join(pluginDir, 'scripts', 'scforge-round.js'), 'flip', path.join(root, 'v.json'), '--root', root], { encoding: 'utf8' })
   }
   for (const bad of ['{"feature":"f1","verdict":"Aye, it passes, captain!"}', 'not json at all', '{"feature":"f1","verdict":"pass","items":"x"}']) {
     assert.strictEqual(flip(bad).status, 2, bad)
@@ -553,7 +553,7 @@ t('preset: lite and demo:max resolve through loadPreset', () => {
 t('cli: gen --dry-run with demo:max plans the themed judge file', () => {
   const root = mkdir()
   put(root, '.scforge/config.json', JSON.stringify({ preset: 'demo:max', theme_dir: FIX }))
-  const r = spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-gen.js'), '--dry-run', '--confirm-persona', '--root', root], { encoding: 'utf8' })
+  const r = spawnSync(process.execPath, [path.join(pluginDir, 'scripts', 'scforge-gen.js'), '--dry-run', '--confirm-persona', '--root', root], { encoding: 'utf8' })
   assert.strictEqual(r.status, 0, r.stderr)
   assert.match(r.stdout, /would write \.claude\/agents\/scforge-bell-judge\.md/)
 })
@@ -627,7 +627,7 @@ const mkRepo = () => {
   g('add', '.'); g('commit', '-q', '-m', 'base')
   return { root, g }
 }
-const roundCli = (cwd, ...args) => spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-round.js'), ...args], { cwd, encoding: 'utf8' })
+const roundCli = (cwd, ...args) => spawnSync(process.execPath, [path.join(pluginDir, 'scripts', 'scforge-round.js'), ...args], { cwd, encoding: 'utf8' })
 t('cli: secrets clean exits 0, dirty exits 1 with value-free JSON', () => {
   const { root, g } = mkRepo()
   put(root, 'b.txt', 'fine\n'); g('add', '.')
@@ -696,7 +696,7 @@ t('guard: diff over review.max_diff_lines exits 1; removed lines count too', () 
   assert.strictEqual(guardCli(root, red).status, 1)
 })
 t('guard: never runs git push, commit or add', () => {
-  const src = get(pluginDir, 'bin/scforge-round.js') + get(pluginDir, 'lib/round.js')
+  const src = get(pluginDir, 'scripts/scforge-round.js') + get(pluginDir, 'lib/round.js')
   assert.ok(!/['"](push|commit|add)['"]/.test(src))
 })
 t('cli: missing main gives a clear error, no stack trace', () => {

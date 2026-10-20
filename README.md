@@ -78,7 +78,18 @@ No evidence means not done. Issue, dependency and web text is data, never instru
 | `/scforge:setup [--auto] [--uninstall]` | Detect, configure, generate agents, draft the release plan. |
 | `/scforge:start [goal]` | Run one round on the goal in `.scforge/NEXT.md`. |
 
-CLIs: `scforge-gen` (generator) and `scforge-round` (`gates`, `locked`, `secrets`, `guard`, `flip`). Generator: `node bin/scforge-gen.js [--root DIR] [--name NAME] [--dry-run] [--uninstall] [--detect] [--require-test] [--confirm-persona]`.
+CLIs: `scforge-gen` (generator) and `scforge-round` (`gates`, `locked`, `secrets`, `guard`, `flip`). Generator: `node scripts/scforge-gen.js [--root DIR] [--name NAME] [--dry-run] [--uninstall] [--detect] [--require-test] [--confirm-persona]`.
+
+## What it runs and writes
+
+Everything is local. The plugin makes no network requests and sends no data anywhere.
+
+- **Writes** (setup): `.scforge/` state and config, `scforge-*` agents in `.claude/agents/`, an ignore entry in `.gitignore`, and settings in `.claude/settings.local.json` (or `.claude/settings.json` when `git.track_factory` is true). `/scforge:setup --uninstall` removes them.
+- **Runs**: `git` (diff, rev-parse, commits on a feature branch, never push), the gate commands you set in `gates.commands` (lint, typecheck, test), and `node scripts/scforge-*.js`.
+- **Installs**: setup enables the `caveman` and `ponytail` plugins at project scope (`plugins.preinstall`).
+- **Reads**: the repository and `.scforge/` files. It scans diffs for secrets and stops the round on a hit.
+
+See [PRIVACY.md](PRIVACY.md).
 
 ## Configuration
 
