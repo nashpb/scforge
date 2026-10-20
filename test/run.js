@@ -561,4 +561,12 @@ t('no fan names in tracked files outside .scforge/NEXT.md', () => {
   assert.strictEqual(r.status, 1, r.stdout)
 })
 
+t('council roles run on sonnet medium', () => {
+  for (const f of ['product-council', 'decision-council']) {
+    const fm = fs.readFileSync(path.join(pluginDir, 'roles', f + '.md'), 'utf8').split('---')[1]
+    assert.match(fm, /\nmodel: sonnet\r?\n/, f)
+    assert.match(fm, /\neffort: medium\r?\n/, f)
+  }
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
