@@ -766,4 +766,12 @@ t('doctor Branch check uses the current worktree branch', () => {
   assert.ok(get(pluginDir, 'skills/doctor/SKILL.md').includes('git branch --show-current'))
 })
 
+t('setup.md re-run: step 7 skips installed plugins and notes user scope, step 8 skips when approval not pending', () => {
+  const s = get(pluginDir, 'commands/setup.md')
+  const s7 = s.slice(s.indexOf('7. **Preinstall'), s.indexOf('8. **Release plan'))
+  const s8 = s.slice(s.indexOf('8. **Release plan'), s.indexOf('9. **Re-run'))
+  assert.ok(/already installed/.test(s7) && /user scope/.test(s7) && /claude plugin uninstall/.test(s7))
+  assert.ok(/not `pending`/.test(s8) && /skip/i.test(s8))
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
