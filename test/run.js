@@ -654,4 +654,68 @@ t('start.md runs secrets, secret-found andon, findings-only judge input', () => 
   assert.match(s, /findings JSON/)
 })
 
+const guardCli = (root, ...a) => roundCli(root, 'guard', ...a)
+const guardRepo = () => {
+  const r = mkRepo()
+  r.red = r.g('rev-parse', 'HEAD').trim()
+  return r
+}
+t('guard: clean small staged diff exits 0 with empty reasons', () => {
+  const { root, g, red } = guardRepo()
+  put(root, 'b.txt', 'fine\n'); g('add', '.')
+  const r = guardCli(root, red)
+  assert.strictEqual(r.status, 0, r.stderr)
+  assert.deepStrictEqual(JSON.parse(r.stdout).reasons, [])
+})
+t('guard: staged secret exits 1, output has no value', () => {
+  const { root, g, red } = guardRepo()
+  const v = SECRETS['github-token']
+  put(root, 'c.txt', 'x\n' + v + '\n'); g('add', '.')
+  const r = guardCli(root, red)
+  assert.strictEqual(r.status, 1, r.stderr)
+  assert.ok(r.stdout.includes('secrets'))
+  assert.ok(!r.stdout.includes(v.slice(6)))
+})
+t('guard: staged locked test path exits 1 with red sha, skipped without', () => {
+  const { root, g, red } = guardRepo()
+  put(root, 'test/x.js', 'ok\n'); g('add', '.')
+  const r = guardCli(root, red)
+  assert.strictEqual(r.status, 1, r.stderr)
+  assert.deepStrictEqual(JSON.parse(r.stdout).reasons.map(x => x.reason), ['locked'])
+  assert.strictEqual(guardCli(root).status, 0)
+})
+t('guard: diff over review.max_diff_lines exits 1; removed lines count too', () => {
+  const { root, g, red } = guardRepo()
+  put(root, '.scforge/config.json', JSON.stringify({ review: { max_diff_lines: 3 } }))
+  put(root, 'big.txt', '1\n2\n3\n4\n'); g('add', 'big.txt')
+  const r = guardCli(root, red)
+  assert.strictEqual(r.status, 1, r.stderr)
+  assert.deepStrictEqual(JSON.parse(r.stdout).reasons.map(x => x.reason), ['size'])
+  g('reset', '-q'); put(root, 'big.txt', '1\n2\n'); g('add', 'big.txt')
+  assert.strictEqual(guardCli(root, red).status, 0)
+  g('commit', '-q', '-m', 'big'); put(root, 'big.txt', 'a\nb\n'); g('add', 'big.txt')
+  assert.strictEqual(guardCli(root, red).status, 1)
+})
+t('guard: never runs git push, commit or add', () => {
+  const src = get(pluginDir, 'bin/scforge-round.js') + get(pluginDir, 'lib/round.js')
+  assert.ok(!/['"](push|commit|add)['"]/.test(src))
+})
+t('cli: missing main gives a clear error, no stack trace', () => {
+  const { root, g } = mkRepo()
+  g('branch', '-m', 'trunk')
+  const r = roundCli(root, 'secrets')
+  assert.strictEqual(r.status, 2)
+  assert.match(r.stderr, /main/)
+  assert.ok(!/\n\s+at /.test(r.stderr))
+})
+t('start.md runs guard before each commit and stops on non-zero', () => {
+  const s = get(pluginDir, 'commands/start.md')
+  assert.match(s, /RND guard RED/)
+  assert.match(s, /non-zero/)
+  assert.ok(s.indexOf('RND guard') < s.indexOf('Never push'))
+})
+t('package.json check script lists lib/secrets.js', () => {
+  assert.ok(JSON.parse(get(pluginDir, 'package.json')).scripts.check.includes('node --check lib/secrets.js'))
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
