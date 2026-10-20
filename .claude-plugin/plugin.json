@@ -1,0 +1,9 @@
+{
+  "name": "scforge",
+  "displayName": "The SuperCrew Forge",
+  "version": "0.1.0",
+  "description": "Configurable multi-agent software factory for Claude Code.",
+  "author": { "name": "nashpb" },
+  "repository": "https://github.com/nashpb/scforge",
+  "license": "Apache-2.0"
+}

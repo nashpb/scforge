@@ -1,0 +1,12 @@
+{
+  "name": "scforge",
+  "owner": { "name": "nashpb" },
+  "description": "Scforge: configurable multi-agent software factory for Claude Code.",
+  "plugins": [
+    {
+      "name": "scforge",
+      "source": "./",
+      "description": "Configurable multi-agent software factory: planner, builder, gates and judge with evidence-based completion."
+    }
+  ]
+}
