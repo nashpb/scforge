@@ -10,7 +10,7 @@ Read-only health check. Change nothing. Run each check, then print one table: ch
 Blockers and to-dos are the same classes `/scforge:setup` uses (see `commands/setup.md`).
 
 ## Checks
-Run from the repo root. `RND` is `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-round.js"`; `GEN` is `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-gen.js"`.
+Resolve the main checkout root first: the parent of `git rev-parse --git-common-dir`, as an absolute path. Read only that root's `.scforge/`, and pass `--root <root>` to every `RND` and `GEN` call. `RND` is `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-round.js"`; `GEN` is `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-gen.js"`.
 
 | Check | How | Class if it fails |
 |---|---|---|

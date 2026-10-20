@@ -4,7 +4,7 @@ argument-hint: "[--auto] [--uninstall]"
 allowed-tools: Bash, Read, Write, Edit, Agent, AskUserQuestion
 ---
 
-Generator: `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-gen.js"`. Call it `GEN` below. Arguments: `$ARGUMENTS`.
+Generator: `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-gen.js"`. Call it `GEN` below. Resolve the main checkout root first: the parent of `git rev-parse --git-common-dir`, as an absolute path. Read and write only that root's `.scforge/`, and pass `--root <root>` to every `GEN` call and to `scforge-round`. Arguments: `$ARGUMENTS`.
 
 ## Blockers and to-dos
 Classify every problem found below as a blocker or a to-do.
