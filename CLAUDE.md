@@ -1,6 +1,3 @@
-<!-- scforge:start -->
-@.scforge/CLAUDE.factory.md
-<!-- scforge:end -->
 
 # Branching (git-flow)
 - `main` holds released code only; `development` is integration. Never commit straight to either.
