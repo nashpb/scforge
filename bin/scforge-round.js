@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict'
-// Usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json> [--root DIR]
+// Usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json> | secrets [--staged] [<base>] [--root DIR]
 // Deterministic round steps; the start command calls these and the LLM roles do the rest.
 const fs = require('fs')
 const path = require('path')
@@ -8,6 +8,7 @@ const { execFileSync } = require('child_process')
 const { validate } = require('../lib/schema')
 const { resolve } = require('../lib/resolve')
 const { factoryRoot } = require('../lib/paths')
+const { scanDiff } = require('../lib/secrets')
 const { runGates, decide, lockedViolations, flipPasses, checkVerdict } = require('../lib/round')
 
 const argv = process.argv.slice(2)
@@ -54,7 +55,17 @@ function main() {
     fs.writeFileSync(file, JSON.stringify(flipPasses(readJson(file), verdict), null, 2))
     return 0
   }
-  throw new Error('usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json>')
+  if (cmd === 'secrets') {
+    const git = (...a) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 28 })
+    const base = argv.slice(1).find((a, i, v) => !a.startsWith('--') && v[i - 1] !== '--root')
+    const diff = argv.includes('--staged')
+      ? git('diff', '--cached', '-U0')
+      : git('diff', '-U0', base || git('merge-base', 'main', 'HEAD').trim())
+    const findings = scanDiff(diff)
+    console.log(JSON.stringify({ findings }))
+    return findings.length ? 1 : 0
+  }
+  throw new Error('usage: scforge-round gates [--reset] | locked <red-sha> | flip <verdict.json> | secrets [--staged] [<base>]')
 }
 
 try {
