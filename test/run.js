@@ -762,4 +762,8 @@ t('setup.md and doctor resolve main checkout root and pass --root', () => {
   }
 })
 
+t('doctor Branch check uses the current worktree branch', () => {
+  assert.ok(get(pluginDir, 'skills/doctor/SKILL.md').includes('git branch --show-current'))
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
