@@ -4,7 +4,7 @@ argument-hint: "[--auto] [--uninstall]"
 allowed-tools: Bash, Read, Write, Edit, Agent
 ---
 
-Generator: `node "${CLAUDE_PLUGIN_ROOT}/bin/scforge-gen.js"`. Call it `GEN` below. Arguments: `$ARGUMENTS`.
+Generator: `node "${CLAUDE_PLUGIN_ROOT}/scripts/scforge-gen.js"`. Call it `GEN` below. Arguments: `$ARGUMENTS`.
 
 ## --uninstall
 Run `GEN --uninstall`. Print its output. Stop.

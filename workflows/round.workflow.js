@@ -10,8 +10,8 @@ export const meta = {
   ],
 }
 // args: { repo: "C:\...", roundId: "20261020c", plugin: "<plugin root>" }
-// RND = node <plugin>/bin/scforge-round.js. Gate commands live in .scforge/config.json; RND runs them.
-const RND = `node "${args.plugin}/bin/scforge-round.js"`
+// RND = node <plugin>/scripts/scforge-round.js. Gate commands live in .scforge/config.json; RND runs them.
+const RND = `node "${args.plugin}/scripts/scforge-round.js"`
 // Step strings are joined so the ordered literals below stay the first mention of each step.
 const BASE = [RND, 'gates', '--reset'].join(' ')
 const GUARD = [RND, 'guard'].join(' ')
