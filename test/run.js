@@ -718,4 +718,30 @@ t('package.json check script lists lib/secrets.js', () => {
   assert.ok(JSON.parse(get(pluginDir, 'package.json')).scripts.check.includes('node --check lib/secrets.js'))
 })
 
+const WF = 'workflows/round.workflow.js'
+t('round workflow: parses as an async body', () => {
+  const body = get(pluginDir, WF).replace(/^export /m, '')
+  new (Object.getPrototypeOf(async function () {}).constructor)('args', 'phase', 'agent', 'parallel', 'log', body)
+})
+t('round workflow: no bun, factory/, or git push', () => {
+  const s = get(pluginDir, WF)
+  assert.ok(!/bun/i.test(s) && !s.includes('factory/') && !/push/i.test(s))
+})
+t('round workflow: steps in order', () => {
+  const s = get(pluginDir, WF)
+  const at = ["phase('Plan'", "phase('Red'", "phase('Build'", ' locked ', ' gates', ' secrets ', ' guard ', "phase('Judge'", ' flip '].map(k => s.indexOf(k))
+  assert.ok(at.every((n, i) => n >= 0 && (i === 0 || n > at[i - 1])), at.join())
+  assert.match(s, /build-?fixer/i)
+})
+t('round workflow: no hardcoded agent names or gate commands', () => {
+  const s = get(pluginDir, WF)
+  assert.ok(!/scforge-(planner|sde|judge|build-fixer|sdet)/.test(s))
+  assert.ok(s.includes('.scforge/CLAUDE.factory.md') && s.includes('gates'))
+  assert.ok(!/npm (test|run)|plugin validate/.test(s))
+})
+t('round workflow: old judge/round.workflow.js removed, docs line fixed', () => {
+  assert.ok(!fs.existsSync(path.join(pluginDir, 'judge/round.workflow.js')))
+  assert.ok(!get(pluginDir, 'docs/plan/START-HERE.md').includes('judge/round.workflow.js'))
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
