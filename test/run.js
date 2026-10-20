@@ -747,4 +747,12 @@ t('setup.md: numbered steps each start their own line', () => {
   assert.ok(!/[^\s][ \t]*[0-9]+\. \*\*/.test(get(pluginDir, 'commands/setup.md')))
 })
 
+t('setup.md: step 1 checks AskUserQuestion, questions come in sections', () => {
+  const s = get(pluginDir, 'commands/setup.md')
+  assert.ok(/allowed-tools:.*AskUserQuestion/.test(s))
+  assert.ok(/1\. \*\*Question tool\.\*\*/.test(s))
+  assert.ok(s.indexOf('Question tool') < s.indexOf('**Detect.**'))
+  assert.ok(s.split('### Section ').length - 1 >= 6)
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
