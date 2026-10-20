@@ -1,7 +1,7 @@
 ---
 name: decision-council
 description: Decision council (the elders). Five advisors answer one framed decision independently, review each other anonymously, and a chairman gives one recommendation. Convene for rule changes, gate-evidence questions and conflicting reports. Not for small tasks.
-model: opus
+model: sonnet
 effort: medium
 ---
 
