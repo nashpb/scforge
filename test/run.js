@@ -591,4 +591,67 @@ t('README covers install, rounds, config, themes, warnings; no fan names or disc
   assert.ok(fs.existsSync(path.join(pluginDir, '.scforge/reports/mascot-research.md')))
 })
 
+// secret gate
+const { scanDiff } = require('../lib/secrets')
+const addDiff = (file, ...lines) => `diff --git a/${file} b/${file}\n--- a/${file}\n+++ b/${file}\n@@ -1,1 +1,${lines.length} @@\n` + lines.map(l => '+' + l).join('\n') + '\n'
+const SECRETS = {
+  'aws-key': 'AK' + 'IA' + 'ABCDEFGHIJKLMNOP',
+  'private-key': '-----BEGIN RSA PRIV' + 'ATE KEY-----',
+  'github-token': 'gh' + 'p_' + 'a'.repeat(36),
+  'sk-key': 's' + 'k-' + 'b'.repeat(24),
+  'slack-token': 'xo' + 'xb-' + '1234567890-abcdef',
+  'assignment': 'pass' + 'word = "hunter2hunter2"',
+}
+for (const [rule, val] of Object.entries(SECRETS)) {
+  t(`secrets: detects ${rule}, finding has no value`, () => {
+    const f = scanDiff(addDiff('src/a.js', 'ok line', val))
+    assert.strictEqual(f.length, 1)
+    assert.deepStrictEqual(Object.keys(f[0]).sort(), ['file', 'line', 'rule'])
+    assert.strictEqual(f[0].file, 'src/a.js')
+    assert.strictEqual(f[0].line, 2)
+    assert.ok(f[0].rule)
+    assert.ok(!JSON.stringify(f).includes(val.slice(6)))
+  })
+}
+t('secrets: allow marker skips; removed, context and +++ lines never flagged', () => {
+  const v = SECRETS['aws-key']
+  assert.deepStrictEqual(scanDiff(addDiff('a.js', v + ' // scforge:allow-secret')), [])
+  const d = `--- a/a.js\n+++ b/a.js\n@@ -1,2 +1,2 @@\n-${v}\n ${v}\n+clean\n`
+  assert.deepStrictEqual(scanDiff(d), [])
+  assert.deepStrictEqual(scanDiff(`--- a/${v}\n+++ b/${v}\n`), [])
+})
+const mkRepo = () => {
+  const root = mkdir()
+  const g = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: root, encoding: 'utf8' })
+  g('init', '-q', '-b', 'main')
+  put(root, 'a.txt', 'hi\n')
+  g('add', '.'); g('commit', '-q', '-m', 'base')
+  return { root, g }
+}
+const roundCli = (cwd, ...args) => spawnSync(process.execPath, [path.join(pluginDir, 'bin', 'scforge-round.js'), ...args], { cwd, encoding: 'utf8' })
+t('cli: secrets clean exits 0, dirty exits 1 with value-free JSON', () => {
+  const { root, g } = mkRepo()
+  put(root, 'b.txt', 'fine\n'); g('add', '.')
+  assert.strictEqual(roundCli(root, 'secrets', '--staged').status, 0)
+  const v = SECRETS['github-token']
+  put(root, 'c.txt', 'x\n' + v + '\n'); g('add', '.')
+  const r = roundCli(root, 'secrets', '--staged')
+  assert.strictEqual(r.status, 1, r.stderr)
+  assert.ok(!r.stdout.includes(v.slice(6)))
+  assert.deepStrictEqual(JSON.parse(r.stdout).findings.map(f => [f.file, f.line]), [['c.txt', 2]])
+})
+t('cli: secrets default base is merge-base with main', () => {
+  const { root, g } = mkRepo()
+  g('checkout', '-q', '-b', 'feat')
+  put(root, 'd.txt', SECRETS['sk-key'] + '\n'); g('add', '.'); g('commit', '-q', '-m', 'x')
+  assert.strictEqual(roundCli(root, 'secrets').status, 1)
+  assert.strictEqual(roundCli(root, 'secrets', 'HEAD').status, 0)
+})
+t('start.md runs secrets, secret-found andon, findings-only judge input', () => {
+  const s = get(pluginDir, 'commands/start.md')
+  assert.match(s, /RND secrets/)
+  assert.match(s, /secret-found/)
+  assert.match(s, /findings JSON/)
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
