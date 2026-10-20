@@ -9,7 +9,7 @@
 7. First prompt for Claude: the "Start next run" line in `.scforge/NEXT.md`.
 
 ## Layout
-- `.claude-plugin/plugin.json`: manifest stub (version 0.0.0).
+- `.claude-plugin/plugin.json`: manifest (version 0.1.0).
 - `agents/ commands/ skills/scforge/ hooks/ bin/ presets/ evals/ ui/ worker/ .github/ISSUE_TEMPLATE/`: empty plugin folders from the plan.
 - `workflows/round.workflow.js`: round workflow driving the `scforge-round` steps.
 - `roles/`: optional decision and product council roles.
