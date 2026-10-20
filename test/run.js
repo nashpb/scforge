@@ -10,6 +10,7 @@ const { resolve } = require('../lib/resolve')
 const { generate, uninstall } = require('../lib/generate')
 const { factoryRoot } = require('../lib/paths')
 const { detect } = require('../lib/detect')
+const { decide: alDecide } = require('../lib/allowlist')
 const { findPack, loadPack, loadPreset } = require('../lib/pack')
 
 const pluginDir = path.resolve(__dirname, '..')
@@ -741,6 +742,50 @@ t('round workflow: no hardcoded agent names or gate commands', () => {
 t('round workflow: old judge/round.workflow.js removed, docs line fixed', () => {
   assert.ok(!fs.existsSync(path.join(pluginDir, 'judge/round.workflow.js')))
   assert.ok(!get(pluginDir, 'docs/plan/START-HERE.md').includes('judge/round.workflow.js'))
+})
+
+const AL_ROOT = path.resolve(tmpBase, 'al-root')
+const AL_F = { features: [
+  { id: 'a', passes: false, tasks: [{ touches: ['lib/x.js', 'src/**/*.js', 'docs/*.md'] }] },
+  { id: 'b', passes: true, tasks: [{ touches: ['done/**'] }] },
+] }
+const al = (role, p, features = AL_F) => alDecide({ role, filePath: p, root: AL_ROOT, features })
+t('allowlist: sde/build-fixer allow touches of passes:false features only', () => {
+  for (const r of ['sde', 'build-fixer']) {
+    assert.strictEqual(al(r, 'lib/x.js').allow, true)
+    assert.strictEqual(al(r, 'src/a/b/c.js').allow, true)
+    assert.strictEqual(al(r, 'docs\\n.md').allow, true)
+    assert.strictEqual(al(r, path.join(AL_ROOT, 'lib', 'x.js')).allow, true)
+    assert.strictEqual(al(r, 'docs/a/n.md').allow, false)
+    assert.strictEqual(al(r, 'lib/y.js').allow, false)
+    assert.strictEqual(al(r, 'done/z.js').allow, false)
+    assert.strictEqual(typeof al(r, 'lib/y.js').reason, 'string')
+  }
+})
+t('allowlist: sdet only tests/, planner only .scforge/, judge only .scforge/state/', () => {
+  assert.ok(al('sdet', 'tests/a/b.js').allow && !al('sdet', 'test/a.js').allow && !al('sdet', 'lib/x.js').allow)
+  assert.ok(al('planner', '.scforge/state/f.json').allow && !al('planner', 'lib/x.js').allow)
+  assert.ok(al('judge', '.scforge/state/f.json').allow && !al('judge', '.scforge/NEXT.md').allow && !al('judge', 'lib/x.js').allow)
+})
+t('allowlist: code-reviewer and unknown roles deny everything', () => {
+  for (const r of ['code-reviewer', 'nobody', '', undefined]) {
+    assert.strictEqual(al(r, 'lib/x.js').allow, false)
+    assert.strictEqual(al(r, '.scforge/state/f.json').allow, false)
+  }
+})
+t('allowlist: escapes outside root denied, both slash styles', () => {
+  assert.strictEqual(al('planner', '.scforge/../../out.txt').allow, false)
+  assert.strictEqual(al('planner', '.scforge\\..\\..\\out.txt').allow, false)
+  assert.strictEqual(al('sde', '../lib/x.js').allow, false)
+  assert.strictEqual(al('sdet', path.resolve(AL_ROOT, '..', 'tests', 'a.js')).allow, false)
+  assert.strictEqual(al('sdet', 'tests\\a.js').allow, true)
+})
+t('allowlist: missing or unparsable features deny sde/build-fixer', () => {
+  for (const f of [null, 'not json{', 42]) {
+    assert.strictEqual(al('sde', 'lib/x.js', f).allow, false)
+    assert.strictEqual(al('build-fixer', 'lib/x.js', f).allow, false)
+  }
+  assert.strictEqual(al('planner', '.scforge/a', null).allow, true)
 })
 
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
