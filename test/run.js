@@ -755,4 +755,11 @@ t('setup.md: step 1 checks AskUserQuestion, questions come in sections', () => {
   assert.ok(s.split('### Section ').length - 1 >= 6)
 })
 
+t('setup.md and doctor resolve main checkout root and pass --root', () => {
+  for (const f of ['commands/setup.md', 'skills/doctor/SKILL.md']) {
+    const s = get(pluginDir, f)
+    assert.ok(s.includes('git-common-dir') && s.includes('--root'), f)
+  }
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
