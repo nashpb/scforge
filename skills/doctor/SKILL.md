@@ -1,9 +1,9 @@
 ---
-name: sc4-doctor
-description: Check that the Scforge install in this repo works. Use when the user says "SC4 doctor", asks whether Scforge is set up properly, or after /scforge:setup.
+name: doctor
+description: Check that the Scforge install in this repo works. Use when the user says "SC Forge doctor", asks whether Scforge is set up properly, or after /scforge:setup.
 ---
 
-# SC4 doctor
+# SC Forge doctor
 
 Read-only health check. Change nothing. Run each check, then print one table: check, `ok`/`blocker`/`todo`, evidence, fix command. Blockers first.
 
