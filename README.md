@@ -8,7 +8,7 @@ Status: v0.1, preset `lite`. Config is JSON in `.scforge/config.json`.
 
 Requires Node 20 or newer and Claude Code.
 
-1. Add the plugin from this repo with Claude Code's plugin commands (`claude plugin validate .` checks the manifest).
+1. Install the plugin as `scforge@scforge` with Claude Code's plugin commands (`claude plugin validate .` checks the manifest).
 2. In your project run `/scforge:setup`. It detects your stack, fills `gates.commands`, writes `.scforge/config.json`, generates the `scforge-*` agents in `.claude/agents/`, and drafts a release plan that you must approve by typing `approve release plan`.
 3. `/scforge:setup --uninstall` removes what it generated.
 
@@ -51,9 +51,9 @@ All keys are optional; defaults are in `config.schema.json`.
 
 ## Themes and packs
 
-Themes rename agents and supply persona text. Core ships only the `normal` theme: standard role names, no persona, no artwork, no franchise names.
+Themes rename agents and supply persona text. Core ships only the `normal` theme: standard role names, no persona, no artwork, no third-party names.
 
-Themes load from separate packs through two keys, `theme` (the pack id) and `theme_dir` (where the pack lives). A pack is a folder with a `theme.json` holding a disclaimer, a captain, a character with `soft` and `hard` text per role, and council names; it may also carry presets and a mascot note. `test/fixtures/packs/demo/theme.json` is a worked example with invented names.
+Themes load from separate packs through two keys, `theme` (the pack id) and `theme_dir` (where the pack lives). A pack is a folder with a `theme.json` holding its own disclaimer, a captain, a character with `soft` and `hard` text per role, and council names; it may also carry presets and a mascot note. `test/fixtures/packs/demo/theme.json` is a worked example with invented names.
 
 The loader is `lib/pack.js`; `config.schema.json` takes any pack name for `theme` and `mascot`, plus `theme_dir`.
 
@@ -79,8 +79,4 @@ Hard persona and `override_rules` are risky: an in-character agent can talk itse
 
 `npm run check`, `claude plugin validate .`, `npm test`. Rounds are run through the `scforge` skill; resume notes live in `.scforge/NEXT.md`.
 
-## Disclaimer
-
-Core ships no third-party names or artwork. A fan pack must carry its own disclaimer in its `theme.json`; the pack loader surfaces it.
-
-Licensed Apache-2.0 (code). The disclaimer concerns fan packs and their themes, which are not part of core.
+Licensed Apache-2.0.
