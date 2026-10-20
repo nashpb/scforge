@@ -23,7 +23,7 @@ Resolve the main checkout root first: the parent of `git rev-parse --git-common-
 | Release plan | `.scforge/release-plan.md` names an approver under `## Approval`, not `pending` | todo: type `approve release plan` during `/scforge:setup` |
 | Companion plugins | `claude plugin list` shows `caveman` and `ponytail`; flag user scope | todo: `!claude plugin install caveman@caveman --scope local` (same for ponytail) |
 | Dynamic workflows | `disableWorkflows` is not true in settings, `CLAUDE_CODE_DISABLE_WORKFLOWS` is unset; ask the user to confirm `/workflows` opens | todo: `/config`, turn on "Dynamic workflows" |
-| Branch | current branch is not `main` or `development` | todo: `!git switch -c feat/<name>` |
+| Branch | `git branch --show-current` in the current directory (the current worktree, not the main checkout) is not `main` or `development` | todo: `!git switch -c feat/<name>` |
 
 ## Rules
 - Never write a file, install a plugin or edit settings. Print the command for the user.
