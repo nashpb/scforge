@@ -583,4 +583,12 @@ t('council roles run on sonnet medium', () => {
   }
 })
 
+t('README covers install, rounds, config, themes, warnings; no fan names or disclaimer', () => {
+  const r = get(pluginDir, 'README.md')
+  for (const h of ['## Install', '## Rounds', '## Config', '## Themes', 'scforge@scforge', 'override_rules', '--confirm-persona']) assert.ok(r.includes(h), h)
+  assert.ok(!/^## Disclaimer/m.test(r), 'disclaimer section')
+  assert.ok(!/strawhat|gear5|one piece|luffy|zoro|nami|robin|franky|usopp|chopper|sanji|jinbe|brook/i.test(r))
+  assert.ok(fs.existsSync(path.join(pluginDir, '.scforge/reports/mascot-research.md')))
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
