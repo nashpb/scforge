@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict'
-// Usage: scforge-gen [--root DIR] [--name NAME] [--dry-run] [--uninstall] [--detect] [--require-test]
+// Usage: scforge-gen [--root DIR] [--name NAME] [--dry-run] [--uninstall] [--detect] [--require-test] [--confirm-persona]
 const fs = require('fs')
 const path = require('path')
 const { validate } = require('../lib/schema')
@@ -42,6 +42,10 @@ function main() {
     }
     if (argv.includes('--require-test') && !config.gates.commands.test) {
       console.error('config: gates.commands.test is empty; set a test command before setup')
+      return 1
+    }
+    if ((config.persona.level === 'hard' || config.persona.override_rules) && !argv.includes('--confirm-persona')) {
+      console.error('config: persona level hard or override_rules true needs --confirm-persona (an in-character agent can talk itself past a gate); nothing written')
       return 1
     }
     fixes.forEach(f => console.log(`${f.level}: ${f.message}`))

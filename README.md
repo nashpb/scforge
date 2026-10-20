@@ -14,7 +14,7 @@ Requires Node 20 or newer and Claude Code.
 
 Setup refuses an empty `gates.commands.test`. `--auto` keeps defaults but still stops without a test command and never skips release-plan approval.
 
-Generator CLI: `node bin/scforge-gen.js [--root DIR] [--name NAME] [--dry-run] [--uninstall] [--detect] [--require-test]`.
+Generator CLI: `node bin/scforge-gen.js [--root DIR] [--name NAME] [--dry-run] [--uninstall] [--detect] [--require-test] [--confirm-persona]`.
 
 ## Rounds
 
@@ -73,7 +73,7 @@ The loader is `lib/pack.js`; `config.schema.json` takes any pack name for `theme
 
 Never bent, at any level: write allowlists, `autonomy.boundary`, never push, `autonomy.limits`, andon on `autonomy.stop_on`.
 
-Hard persona and `override_rules` are risky: an in-character agent can talk itself past a gate. The planned `scforge-gen --confirm-persona` flag and setup warning for these settings are not built yet.
+Hard persona and `override_rules` are risky: an in-character agent can talk itself past a gate. `scforge-gen` refuses them (exit 1, nothing written) unless `--confirm-persona` is passed; setup shows a warning and passes it only after you type an exact phrase.
 
 ## Development
 
