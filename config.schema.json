@@ -187,6 +187,14 @@
         "strategy": { "enum": ["auto", "handoff"], "default": "auto" }
       }
     },
+    "live": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "reports": { "type": "string", "default": ".scforge/reports" }
+      }
+    },
     "history": {
       "description": "Written in v0.1, collected from v0.2.",
       "type": "object",
