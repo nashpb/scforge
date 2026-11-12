@@ -743,4 +743,35 @@ t('round workflow: old judge/round.workflow.js removed, docs line fixed', () => 
   assert.ok(!get(pluginDir, 'docs/plan/START-HERE.md').includes('judge/round.workflow.js'))
 })
 
+t('setup.md: numbered steps each start their own line', () => {
+  assert.ok(!/[^\s][ \t]*[0-9]+\. \*\*/.test(get(pluginDir, 'commands/setup.md')))
+})
+
+t('setup.md: step 1 checks AskUserQuestion, questions come in sections', () => {
+  const s = get(pluginDir, 'commands/setup.md')
+  assert.ok(/allowed-tools:.*AskUserQuestion/.test(s))
+  assert.ok(/1\. \*\*Question tool\.\*\*/.test(s))
+  assert.ok(s.indexOf('Question tool') < s.indexOf('**Detect.**'))
+  assert.ok(s.split('### Section ').length - 1 >= 6)
+})
+
+t('setup.md and doctor resolve main checkout root and pass --root', () => {
+  for (const f of ['commands/setup.md', 'skills/doctor/SKILL.md']) {
+    const s = get(pluginDir, f)
+    assert.ok(s.includes('git-common-dir') && s.includes('--root'), f)
+  }
+})
+
+t('doctor Branch check uses the current worktree branch', () => {
+  assert.ok(get(pluginDir, 'skills/doctor/SKILL.md').includes('git branch --show-current'))
+})
+
+t('setup.md re-run: step 7 skips installed plugins and notes user scope, step 8 skips when approval not pending', () => {
+  const s = get(pluginDir, 'commands/setup.md')
+  const s7 = s.slice(s.indexOf('7. **Preinstall'), s.indexOf('8. **Release plan'))
+  const s8 = s.slice(s.indexOf('8. **Release plan'), s.indexOf('9. **Re-run'))
+  assert.ok(/already installed/.test(s7) && /user scope/.test(s7) && /claude plugin uninstall/.test(s7))
+  assert.ok(/not `pending`/.test(s8) && /skip/i.test(s8))
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
