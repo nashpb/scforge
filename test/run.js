@@ -891,8 +891,16 @@ t('live wire: flip emits verdict row', () => {
   const root = wireRoot(true)
   put(root, 'v.json', '{"feature":"f1","verdict":"andon","reason":"same failure twice"}')
   assert.strictEqual(roundCli(root, 'flip', 'v.json', '--root', root, '--round', 'r1').status, 0)
-  const r = liveRows(root)[0]
-  assert.deepStrictEqual([r.t, r.id, r.status], ['end', 'feature:f1', 'FAIL'])
+  const rows = liveRows(root)
+  assert.deepStrictEqual(rows.map(r => r.t + ':' + r.id), ['start:feature:f1', 'end:feature:f1'])
+  assert.strictEqual(rows[1].status, 'FAIL')
+})
+t('live wire: flip with invalid config still exits 0 and flips', () => {
+  const root = wireRoot(true)
+  put(root, '.scforge/config.json', JSON.stringify({ live: { bogus: 1 } }))
+  put(root, 'v.json', '{"feature":"f1","verdict":"pass"}')
+  assert.strictEqual(roundCli(root, 'flip', 'v.json', '--root', root, '--round', 'r1').status, 0)
+  assert.strictEqual(JSON.parse(get(root, '.scforge/state/features.json')).features[0].passes, true)
 })
 t('live wire: event subcommand kinds and bad kind', () => {
   const root = wireRoot(true)
