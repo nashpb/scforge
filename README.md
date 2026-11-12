@@ -117,7 +117,7 @@ Never bent at any level: write allowlists, `autonomy.boundary`, never push, `aut
 
 Optional. [RunPulse](https://github.com/nashpb/runpulse) is a separate tool and is **not bundled** with scforge; install it yourself. Config keys: `live.enabled` (default false) and `live.reports` (default `.scforge/reports`). When enabled, `scforge-gen` writes `runpulse.json` (`{"reports": "<live.reports>"}`) at the repo root and removes it on `--uninstall`.
 
-Watch a round with `node <runpulse>/bin/runpulse.mjs attach`. `/scforge:start` calls `scforge-round event suite|stage|end`; stage JSON fields are `id`, `m`, `phase` (`start` or `end`), and on end `kind` (`pass`, `fail`, `andon`), `ms`, `text`. Gates, flip and secrets emit their own rows. A live write failure never changes a round outcome.
+Watch a round with `node <runpulse>/bin/runpulse.mjs attach`. `/scforge:start` calls `scforge-round event suite|stage|end`; stage JSON fields are `id`, `m`, `phase` (`start` or `end`), and on end `kind` (`pass`, `fail`, `andon`), `ms`, `text`. Gates and flip emit their own rows. A live write failure never changes a round outcome.
 
 ## Roadmap
 
