@@ -34,7 +34,7 @@ Run `GEN --uninstall`. Print its output. Stop.
 ### Section 5: Git and CLAUDE.md
 `git.track_factory` (default false), `git.auto_commit`, `claude_md.enabled`, `claude_md.target`. PRs are assigned to `@me`; say so, do not ask.
 ### Section 6: Context and tracking
-`compact.enabled`, `compact.threshold_pct`, `compact.strategy`, `history.enabled`, `usage.enabled`.
+`compact.enabled`, `compact.threshold_pct`, `compact.strategy`, `history.enabled`, `usage.enabled`, `live.enabled`, `live.reports`. Live view is optional: when on, the generator also writes `runpulse.json` at the repo root; RunPulse is installed separately.
 ### Section 7: Persona and theme
 `persona.level`, `persona.protect_payload`, `persona.override_rules`, `theme`, `mascot`. A `hard` level or `override_rules` true triggers the warning in the Generate step.
 ### Section 8: Companion plugins

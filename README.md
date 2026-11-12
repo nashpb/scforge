@@ -113,6 +113,12 @@ Never bent at any level: write allowlists, `autonomy.boundary`, never push, `aut
 
 > **Warning.** An in-character agent can talk itself past a gate. `scforge-gen` refuses `hard` persona and `override_rules` (exit 1, nothing written) unless `--confirm-persona` is passed; `/scforge:setup` passes it only after you type an exact phrase.
 
+## Live view (RunPulse)
+
+Optional. [RunPulse](https://github.com/) is a separate tool and is **not bundled** with scforge; install it yourself. Config keys: `live.enabled` (default false) and `live.reports` (default `.scforge/reports`). When enabled, `scforge-gen` writes `runpulse.json` (`{"reports": "<live.reports>"}`) at the repo root and removes it on `--uninstall`.
+
+Watch a round with `node <runpulse>/bin/runpulse.mjs attach`. `/scforge:start` calls `scforge-round event suite|stage|end`; stage JSON fields are `id`, `m`, `phase` (`start` or `end`), and on end `kind` (`pass`, `fail`, `andon`), `ms`, `text`. Gates, flip and secrets emit their own rows. A live write failure never changes a round outcome.
+
 ## Roadmap
 
 v0.1.0 is the smallest factory that installs, configures itself and finishes one feature with evidence. Planned for v0.2: per-role write-allowlist hook, eval suite, `setup_steps`/`init.sh`, `MISTAKES.md` postmortems, more presets, parallel features, two-stage review, board and history. See [`CHANGELOG.md`](CHANGELOG.md).
