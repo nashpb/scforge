@@ -784,4 +784,49 @@ t('setup.md re-run: step 7 skips installed plugins and notes user scope, step 8 
   assert.ok(/not `pending`/.test(s8) && /skip/i.test(s8))
 })
 
+const live = () => require('../lib/live')
+t('live: suite and gate events map pass/fail/retry/skip', () => {
+  const L = live()
+  const s = L.suiteEvent('r1', 3)
+  assert.deepStrictEqual([s.t, s.name, s.planned], ['suite', 'r1', 3])
+  assert.ok(typeof s.ts === 'number' || typeof s.ts === 'string')
+  const [a, b] = L.gateEvents({ name: 'lint', code: 0, tail: '' })
+  assert.deepStrictEqual([a.t, a.name, b.t, b.status], ['start', 'lint', 'end', 'PASS'])
+  const f = L.gateEvents({ name: 'test', code: 1, tail: 'boom' })[1]
+  assert.deepStrictEqual([f.status, f.error], ['FAIL', 'boom'])
+  assert.strictEqual(L.gateEvents({ name: 'test', code: 1, tail: 'x' }, 'retry')[1].status, 'RETRY')
+  assert.strictEqual(L.gateEvents({ name: 'test' }, 'skip')[1].status, 'SKIP')
+})
+t('live: feature, verdict, andon, note events', () => {
+  const L = live()
+  assert.strictEqual(L.featureEvent('f1', 'pass').status, 'PASS')
+  assert.strictEqual(L.verdictEvent('f1', 'pass').status, 'PASS')
+  const v = L.verdictEvent('f1', 'fail', 'nope')
+  assert.deepStrictEqual([v.status, v.error], ['FAIL', 'nope'])
+  const an = L.featureEvent('f1', 'andon', 'same failure twice')
+  assert.deepStrictEqual([an.status, an.error], ['FAIL', 'same failure twice'])
+  const n = L.noteEvent('judge on feat/x')
+  assert.deepStrictEqual([n.t, n.text], ['note', 'judge on feat/x'])
+})
+t('live: error trimmed to gate tail, secret not emitted', () => {
+  const L = live()
+  const long = Array.from({ length: 50 }, (_, i) => `line${i}`).join('\n')
+  const e = L.gateEvents({ name: 'test', code: 1, tail: long })[1].error
+  assert.ok(e.includes('line49') && !e.includes('line0\n') && e.split('\n').length <= 20)
+  const key = 'AKIA' + 'ABCDEFGHIJKLMNOP'
+  const bad = L.gateEvents({ name: 'test', code: 1, tail: `oops\n${key}` })[1]
+  assert.ok(!JSON.stringify(bad).includes(key))
+})
+t('live: append writes jsonl, mkdir -p, swallows failure', () => {
+  const L = live()
+  const root = mkdir()
+  const ev = L.noteEvent('hi')
+  assert.ok(L.append(path.join(root, 'a', 'b'), 'r1', ev) !== false)
+  assert.deepStrictEqual(JSON.parse(get(root, 'a/b/r1/live.jsonl').trim()), ev)
+  put(root, 'file', 'x')
+  const orig = console.error
+  console.error = () => {}
+  try { assert.strictEqual(L.append(path.join(root, 'file'), 'r1', ev), false) } finally { console.error = orig }
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
