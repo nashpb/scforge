@@ -562,6 +562,16 @@ t('config schema: theme_dir and pack presets', () => {
   assert.ok(res({ preset: 'Bad:x' }).errors.length)
   assert.deepStrictEqual(res({ preset: 'demo:max' }).errors, [])
 })
+t('schema: live block accepted, bad types and unknown keys rejected, default off', () => {
+  assert.deepStrictEqual(validate(schema, { live: { enabled: true, reports: 'out/r' } }), [])
+  assert.ok(validate(schema, { live: { enabled: 'yes' } }).length)
+  assert.ok(validate(schema, { live: { reports: 5 } }).length)
+  assert.match(validate(schema, { live: { port: 1 } })[0], /unknown key/)
+  const r = res({})
+  assert.deepStrictEqual(r.errors, [])
+  assert.strictEqual(r.config.live.enabled, false)
+  assert.strictEqual(r.config.live.reports, '.scforge/reports')
+})
 t('start.md names agents by role, not hardcoded', () => {
   assert.ok(!/scforge-(planner|sde|build-fixer|judge)/.test(get(pluginDir, 'commands/start.md')))
 })
