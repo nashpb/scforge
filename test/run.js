@@ -562,6 +562,16 @@ t('config schema: theme_dir and pack presets', () => {
   assert.ok(res({ preset: 'Bad:x' }).errors.length)
   assert.deepStrictEqual(res({ preset: 'demo:max' }).errors, [])
 })
+t('schema: live block accepted, bad types and unknown keys rejected, default off', () => {
+  assert.deepStrictEqual(validate(schema, { live: { enabled: true, reports: 'out/r' } }), [])
+  assert.ok(validate(schema, { live: { enabled: 'yes' } }).length)
+  assert.ok(validate(schema, { live: { reports: 5 } }).length)
+  assert.match(validate(schema, { live: { port: 1 } })[0], /unknown key/)
+  const r = res({})
+  assert.deepStrictEqual(r.errors, [])
+  assert.strictEqual(r.config.live.enabled, false)
+  assert.strictEqual(r.config.live.reports, '.scforge/reports')
+})
 t('start.md names agents by role, not hardcoded', () => {
   assert.ok(!/scforge-(planner|sde|build-fixer|judge)/.test(get(pluginDir, 'commands/start.md')))
 })
@@ -772,6 +782,167 @@ t('setup.md re-run: step 7 skips installed plugins and notes user scope, step 8 
   const s8 = s.slice(s.indexOf('8. **Release plan'), s.indexOf('9. **Re-run'))
   assert.ok(/already installed/.test(s7) && /user scope/.test(s7) && /claude plugin uninstall/.test(s7))
   assert.ok(/not `pending`/.test(s8) && /skip/i.test(s8))
+})
+
+const live = () => require('../lib/live')
+t('live: suite, info, suite-end events match contract', () => {
+  const L = live()
+  const planned = [{ cls: 'gate', m: 'lint', desc: 'd', groups: ['g'] }]
+  const s = L.suiteEvent({ name: 'r1', runId: 'r1', planned, xml: 'x.xml', env: 'dev', threads: 1, parallel: false })
+  assert.strictEqual(typeof s.ts, 'number')
+  assert.deepStrictEqual([s.t, s.name, s.xml, s.env, s.runId, s.threads, s.parallel], ['suite', 'r1', 'x.xml', 'dev', 'r1', 1, false])
+  assert.deepStrictEqual(s.planned, planned)
+  const i = L.infoEvent('branch', 'feat/x')
+  assert.deepStrictEqual([i.t, i.k, i.v, typeof i.ts], ['info', 'branch', 'feat/x', 'number'])
+  const e = L.suiteEndEvent('r1')
+  assert.deepStrictEqual([e.t, e.name, typeof e.ts], ['suite-end', 'r1', 'number'])
+})
+t('live: start/end/note events and gate rows', () => {
+  const L = live()
+  const st = L.startEvent({ id: 'x', cls: 'stage', m: 'plan', params: '', thread: 'main' })
+  assert.deepStrictEqual([st.t, st.id, st.cls, st.m, st.thread, typeof st.ts], ['start', 'x', 'stage', 'plan', 'main', 'number'])
+  const en = L.endEvent({ id: 'x', kind: 'pass', ms: 5 })
+  assert.deepStrictEqual([en.t, en.id, en.status, en.ms, typeof en.ts], ['end', 'x', 'PASS', 5, 'number'])
+  assert.strictEqual(L.endEvent({ id: 'x', kind: 'retry', ms: 1, text: 'y' }).status, 'RETRY')
+  assert.strictEqual(L.endEvent({ id: 'x', kind: 'skip', ms: 0 }).status, 'SKIP')
+  const an = L.endEvent({ id: 'x', kind: 'andon', ms: 1, text: 'same failure twice' })
+  assert.deepStrictEqual([an.status, an.error], ['FAIL', 'same failure twice'])
+  const n = L.noteEvent('x', 'k', 'v')
+  assert.deepStrictEqual([n.t, n.id, n.k, n.v, typeof n.ts], ['note', 'x', 'k', 'v', 'number'])
+  const [a, b] = L.gateEvents({ name: 'lint', code: 0, tail: '', ms: 7 })
+  assert.deepStrictEqual([a.t, a.id, a.cls, a.m], ['start', 'gate:lint', 'gate', 'lint'])
+  assert.deepStrictEqual([b.t, b.id, b.status, b.ms], ['end', 'gate:lint', 'PASS', 7])
+  const f = L.gateEvents({ name: 'test', code: 1, tail: 'boom', ms: 2 })[1]
+  assert.deepStrictEqual([f.status, f.error], ['FAIL', 'boom'])
+  assert.strictEqual(L.gateEvents({ name: 'test', code: 1, tail: 'x' }, 'retry')[1].status, 'RETRY')
+  assert.strictEqual(L.gateEvents({ name: 'test' }, 'skip')[1].status, 'SKIP')
+})
+t('live: feature and verdict end events', () => {
+  const L = live()
+  const p = L.featureEvent('f1', 'pass')
+  assert.deepStrictEqual([p.t, p.id, p.status], ['end', 'feature:f1', 'PASS'])
+  assert.strictEqual(L.verdictEvent('f1', 'pass').status, 'PASS')
+  const v = L.verdictEvent('f1', 'fail', 'nope')
+  assert.deepStrictEqual([v.id, v.status, v.error], ['feature:f1', 'FAIL', 'nope'])
+  const an = L.featureEvent('f1', 'andon', 'same failure twice')
+  assert.deepStrictEqual([an.status, an.error], ['FAIL', 'same failure twice'])
+  const st = L.featureStartEvent('f1')
+  assert.deepStrictEqual([st.t, st.id, st.cls, st.m], ['start', 'feature:f1', 'feature', 'f1'])
+})
+t('live: error trimmed to gate tail, secret not emitted', () => {
+  const L = live()
+  const long = Array.from({ length: 50 }, (_, i) => `line${i}`).join('\n')
+  const e = L.gateEvents({ name: 'test', code: 1, tail: long })[1].error
+  assert.ok(e.includes('line49') && !e.includes('line0\n') && e.split('\n').length <= 20)
+  const key = 'AKIA' + 'ABCDEFGHIJKLMNOP'
+  const bad = L.gateEvents({ name: 'test', code: 1, tail: `oops\n${key}` })[1]
+  assert.ok(!JSON.stringify(bad).includes(key))
+})
+t('live: append writes jsonl, mkdir -p, swallows failure', () => {
+  const L = live()
+  const root = mkdir()
+  const ev = L.noteEvent('x', 'k', 'hi')
+  assert.ok(L.append(path.join(root, 'a', 'b'), 'r1', ev) !== false)
+  assert.deepStrictEqual(JSON.parse(get(root, 'a/b/r1/live.jsonl').trim()), ev)
+  put(root, 'file', 'x')
+  const orig = console.error
+  console.error = () => {}
+  try { assert.strictEqual(L.append(path.join(root, 'file'), 'r1', ev), false) } finally { console.error = orig }
+})
+
+const wireRoot = (liveOn, lintCode = 0) => {
+  const root = mkdir()
+  put(root, '.scforge/config.json', JSON.stringify({ live: { enabled: liveOn }, gates: { commands: { lint: `node -e "process.exit(${lintCode})"`, test: 'node -e "process.exit(0)"' } } }))
+  put(root, '.scforge/state/features.json', JSON.stringify({ features: [{ id: 'f1', passes: false }] }))
+  return root
+}
+const liveRows = root => get(root, '.scforge/reports/r1/live.jsonl').trim().split('\n').map(l => JSON.parse(l))
+t('live wire: live off writes nothing', () => {
+  const root = wireRoot(false)
+  assert.strictEqual(roundCli(root, 'gates', '--root', root, '--round', 'r1').status, 0)
+  put(root, 'v.json', '{"feature":"f1","verdict":"pass"}')
+  assert.strictEqual(roundCli(root, 'flip', 'v.json', '--root', root, '--round', 'r1').status, 0)
+  assert.strictEqual(roundCli(root, 'event', 'note', '{"id":"x","k":"a","v":"b"}', '--root', root, '--round', 'r1').status, 0)
+  assert.ok(!has(root, '.scforge/reports'))
+})
+t('live wire: live on gates yields PASS rows, no round id writes nothing', () => {
+  const root = wireRoot(true)
+  assert.strictEqual(roundCli(root, 'gates', '--root', root).status, 0)
+  assert.ok(!has(root, '.scforge/reports'))
+  assert.strictEqual(roundCli(root, 'gates', '--root', root, '--round', 'r1').status, 0)
+  const rows = liveRows(root)
+  assert.deepStrictEqual(rows.map(r => r.t + ':' + r.id), ['start:gate:lint', 'end:gate:lint', 'start:gate:test', 'end:gate:test'])
+  assert.deepStrictEqual(rows.filter(r => r.t === 'end').map(r => r.status), ['PASS', 'PASS'])
+  assert.ok(rows.every(r => typeof r.ts === 'number') && rows.filter(r => r.t === 'end').every(r => typeof r.ms === 'number'))
+})
+t('live wire: failing gate gives FAIL row and exit 1', () => {
+  const root = wireRoot(true, 3)
+  assert.strictEqual(roundCli(root, 'gates', '--root', root, '--round', 'r1').status, 1)
+  assert.deepStrictEqual(liveRows(root).filter(r => r.t === 'end').map(r => r.status), ['FAIL'])
+})
+t('live wire: round id read from round.json, fix round gives RETRY', () => {
+  const root = wireRoot(true, 3)
+  put(root, '.scforge/state/round.json', JSON.stringify({ fixRounds: 1, seen: [], roundId: 'r1' }))
+  roundCli(root, 'gates', '--root', root)
+  assert.deepStrictEqual(liveRows(root).filter(r => r.t === 'end').map(r => r.status), ['RETRY'])
+  assert.strictEqual(JSON.parse(get(root, '.scforge/state/round.json')).roundId, 'r1')
+})
+t('live wire: flip emits verdict row', () => {
+  const root = wireRoot(true)
+  put(root, 'v.json', '{"feature":"f1","verdict":"andon","reason":"same failure twice"}')
+  assert.strictEqual(roundCli(root, 'flip', 'v.json', '--root', root, '--round', 'r1').status, 0)
+  const rows = liveRows(root)
+  assert.deepStrictEqual(rows.map(r => r.t + ':' + r.id), ['start:feature:f1', 'end:feature:f1'])
+  assert.strictEqual(rows[1].status, 'FAIL')
+})
+t('live wire: flip with invalid config still exits 0 and flips', () => {
+  const root = wireRoot(true)
+  put(root, '.scforge/config.json', JSON.stringify({ live: { bogus: 1 } }))
+  put(root, 'v.json', '{"feature":"f1","verdict":"pass"}')
+  assert.strictEqual(roundCli(root, 'flip', 'v.json', '--root', root, '--round', 'r1').status, 0)
+  assert.strictEqual(JSON.parse(get(root, '.scforge/state/features.json')).features[0].passes, true)
+})
+t('live wire: event subcommand kinds and bad kind', () => {
+  const root = wireRoot(true)
+  const ev = (...a) => roundCli(root, 'event', ...a, '--root', root, '--round', 'r1')
+  const calls = [
+    ['suite', '{"name":"r1","runId":"r1","planned":[],"xml":"","env":"dev","threads":1,"parallel":false}'],
+    ['info', '{"k":"branch","v":"b"}'],
+    ['stage', '{"id":"stage:plan","m":"plan","phase":"start"}'],
+    ['stage', '{"id":"stage:plan","m":"plan","phase":"end","kind":"pass","ms":4}'],
+    ['note', '{"id":"stage:plan","k":"a","v":"b"}'],
+    ['end', '{"name":"r1"}'],
+  ]
+  for (const c of calls) assert.strictEqual(ev(...c).status, 0, c[0])
+  assert.deepStrictEqual(liveRows(root).map(r => r.t), ['suite', 'info', 'start', 'end', 'note', 'suite-end'])
+  assert.strictEqual(liveRows(root)[2].cls, 'stage')
+  assert.strictEqual(ev('bogus', '{}').status, 2)
+})
+
+// live docs
+const liveOn = { live: { enabled: true, reports: 'out/rep' } }
+t('live docs: runpulse.json written when live on, idempotent', () => {
+  const root = mkdir()
+  gen(root, liveOn)
+  assert.deepStrictEqual(JSON.parse(get(root, 'runpulse.json')), { reports: 'out/rep' })
+  const before = snapshot(root)
+  gen(root, liveOn)
+  assert.deepStrictEqual(snapshot(root), before)
+})
+t('live docs: runpulse.json absent when live off', () => {
+  const root = mkdir()
+  gen(root)
+  assert.ok(!has(root, 'runpulse.json'))
+})
+t('live docs: uninstall removes runpulse.json', () => {
+  const root = mkdir()
+  gen(root, liveOn)
+  uninstall(root, 'scforge')
+  assert.ok(!has(root, 'runpulse.json'))
+})
+t('live docs: start.md has event calls and attach line', () => {
+  const s = fs.readFileSync(path.join(pluginDir, 'commands', 'start.md'), 'utf8')
+  for (const k of ['event suite', 'event stage', 'event end', 'runpulse.mjs attach']) assert.ok(s.includes(k), k)
 })
 
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)

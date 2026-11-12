@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Live view: `live.enabled` and `live.reports` config, `runpulse.json` generated and uninstalled, `/scforge:start` emits RunPulse events. RunPulse is not bundled.
+
 ## [0.1.0] - 2026-10-20
 
 First release.
