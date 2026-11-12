@@ -4,6 +4,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg"></a>
   <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-informational.svg">
+  <a href="https://github.com/nashpb/scforge/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/nashpb/scforge/total.svg"></a>
   <img alt="Node 20+" src="https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg">
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-orange.svg">
 </p>
