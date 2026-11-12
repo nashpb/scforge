@@ -850,4 +850,65 @@ t('live: append writes jsonl, mkdir -p, swallows failure', () => {
   try { assert.strictEqual(L.append(path.join(root, 'file'), 'r1', ev), false) } finally { console.error = orig }
 })
 
+const wireRoot = (liveOn, lintCode = 0) => {
+  const root = mkdir()
+  put(root, '.scforge/config.json', JSON.stringify({ live: { enabled: liveOn }, gates: { commands: { lint: `node -e "process.exit(${lintCode})"`, test: 'node -e "process.exit(0)"' } } }))
+  put(root, '.scforge/state/features.json', JSON.stringify({ features: [{ id: 'f1', passes: false }] }))
+  return root
+}
+const liveRows = root => get(root, '.scforge/reports/r1/live.jsonl').trim().split('\n').map(l => JSON.parse(l))
+t('live wire: live off writes nothing', () => {
+  const root = wireRoot(false)
+  assert.strictEqual(roundCli(root, 'gates', '--root', root, '--round', 'r1').status, 0)
+  put(root, 'v.json', '{"feature":"f1","verdict":"pass"}')
+  assert.strictEqual(roundCli(root, 'flip', 'v.json', '--root', root, '--round', 'r1').status, 0)
+  assert.strictEqual(roundCli(root, 'event', 'note', '{"id":"x","k":"a","v":"b"}', '--root', root, '--round', 'r1').status, 0)
+  assert.ok(!has(root, '.scforge/reports'))
+})
+t('live wire: live on gates yields PASS rows, no round id writes nothing', () => {
+  const root = wireRoot(true)
+  assert.strictEqual(roundCli(root, 'gates', '--root', root).status, 0)
+  assert.ok(!has(root, '.scforge/reports'))
+  assert.strictEqual(roundCli(root, 'gates', '--root', root, '--round', 'r1').status, 0)
+  const rows = liveRows(root)
+  assert.deepStrictEqual(rows.map(r => r.t + ':' + r.id), ['start:gate:lint', 'end:gate:lint', 'start:gate:test', 'end:gate:test'])
+  assert.deepStrictEqual(rows.filter(r => r.t === 'end').map(r => r.status), ['PASS', 'PASS'])
+  assert.ok(rows.every(r => typeof r.ts === 'number') && rows.filter(r => r.t === 'end').every(r => typeof r.ms === 'number'))
+})
+t('live wire: failing gate gives FAIL row and exit 1', () => {
+  const root = wireRoot(true, 3)
+  assert.strictEqual(roundCli(root, 'gates', '--root', root, '--round', 'r1').status, 1)
+  assert.deepStrictEqual(liveRows(root).filter(r => r.t === 'end').map(r => r.status), ['FAIL'])
+})
+t('live wire: round id read from round.json, fix round gives RETRY', () => {
+  const root = wireRoot(true, 3)
+  put(root, '.scforge/state/round.json', JSON.stringify({ fixRounds: 1, seen: [], roundId: 'r1' }))
+  roundCli(root, 'gates', '--root', root)
+  assert.deepStrictEqual(liveRows(root).filter(r => r.t === 'end').map(r => r.status), ['RETRY'])
+  assert.strictEqual(JSON.parse(get(root, '.scforge/state/round.json')).roundId, 'r1')
+})
+t('live wire: flip emits verdict row', () => {
+  const root = wireRoot(true)
+  put(root, 'v.json', '{"feature":"f1","verdict":"andon","reason":"same failure twice"}')
+  assert.strictEqual(roundCli(root, 'flip', 'v.json', '--root', root, '--round', 'r1').status, 0)
+  const r = liveRows(root)[0]
+  assert.deepStrictEqual([r.t, r.id, r.status], ['end', 'feature:f1', 'FAIL'])
+})
+t('live wire: event subcommand kinds and bad kind', () => {
+  const root = wireRoot(true)
+  const ev = (...a) => roundCli(root, 'event', ...a, '--root', root, '--round', 'r1')
+  const calls = [
+    ['suite', '{"name":"r1","runId":"r1","planned":[],"xml":"","env":"dev","threads":1,"parallel":false}'],
+    ['info', '{"k":"branch","v":"b"}'],
+    ['stage', '{"id":"stage:plan","m":"plan","phase":"start"}'],
+    ['stage', '{"id":"stage:plan","m":"plan","phase":"end","kind":"pass","ms":4}'],
+    ['note', '{"id":"stage:plan","k":"a","v":"b"}'],
+    ['end', '{"name":"r1"}'],
+  ]
+  for (const c of calls) assert.strictEqual(ev(...c).status, 0, c[0])
+  assert.deepStrictEqual(liveRows(root).map(r => r.t), ['suite', 'info', 'start', 'end', 'note', 'suite-end'])
+  assert.strictEqual(liveRows(root)[2].cls, 'stage')
+  assert.strictEqual(ev('bogus', '{}').status, 2)
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
