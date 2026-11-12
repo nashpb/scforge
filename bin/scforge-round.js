@@ -9,7 +9,7 @@ const { validate } = require('../lib/schema')
 const { resolve } = require('../lib/resolve')
 const { factoryRoot } = require('../lib/paths')
 const { scanDiff } = require('../lib/secrets')
-const { gateEvents, verdictEvent, suiteEvent, startEvent, endEvent, noteEvent, infoEvent, suiteEndEvent, append } = require('../lib/live')
+const { gateEvents, featureStartEvent, verdictEvent, suiteEvent, startEvent, endEvent, noteEvent, infoEvent, suiteEndEvent, append } = require('../lib/live')
 const { runGates, decide, lockedViolations, guardReasons, flipPasses, checkVerdict } = require('../lib/round')
 
 const argv = process.argv.slice(2)
@@ -68,7 +68,10 @@ function main() {
     const errs = checkVerdict(verdict)
     if (errs.length) throw new Error(`verdict: ${errs.join('; ')}`)
     fs.writeFileSync(file, JSON.stringify(flipPasses(readJson(file), verdict), null, 2))
-    emitter(loadConfig())(verdictEvent(verdict.feature, verdict.verdict === 'pass' ? 'pass' : 'fail', verdict.reason))
+    // live must never change flip's outcome: bad config just skips it
+    let emit = () => {}
+    try { emit = emitter(loadConfig()) } catch {}
+    emit(featureStartEvent(verdict.feature), verdictEvent(verdict.feature, verdict.verdict === 'pass' ? 'pass' : 'fail', verdict.reason))
     return 0
   }
   if (cmd === 'event') {
