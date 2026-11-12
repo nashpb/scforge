@@ -919,4 +919,30 @@ t('live wire: event subcommand kinds and bad kind', () => {
   assert.strictEqual(ev('bogus', '{}').status, 2)
 })
 
+// live docs
+const liveOn = { live: { enabled: true, reports: 'out/rep' } }
+t('live docs: runpulse.json written when live on, idempotent', () => {
+  const root = mkdir()
+  gen(root, liveOn)
+  assert.deepStrictEqual(JSON.parse(get(root, 'runpulse.json')), { reports: 'out/rep' })
+  const before = snapshot(root)
+  gen(root, liveOn)
+  assert.deepStrictEqual(snapshot(root), before)
+})
+t('live docs: runpulse.json absent when live off', () => {
+  const root = mkdir()
+  gen(root)
+  assert.ok(!has(root, 'runpulse.json'))
+})
+t('live docs: uninstall removes runpulse.json', () => {
+  const root = mkdir()
+  gen(root, liveOn)
+  uninstall(root, 'scforge')
+  assert.ok(!has(root, 'runpulse.json'))
+})
+t('live docs: start.md has event calls and attach line', () => {
+  const s = fs.readFileSync(path.join(pluginDir, 'commands', 'start.md'), 'utf8')
+  for (const k of ['event suite', 'event stage', 'event end', 'runpulse.mjs attach']) assert.ok(s.includes(k), k)
+})
+
 console.log(`\n${passed} passed${process.exitCode ? ', some FAILED' : ''}`)
